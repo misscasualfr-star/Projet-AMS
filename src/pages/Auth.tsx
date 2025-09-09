@@ -39,16 +39,16 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            Gestion Planning
+            AMS Planning
           </CardTitle>
           <CardDescription className="text-center">
-            Connectez-vous pour accéder à votre application de gestion
+            Connectez-vous pour accéder à l'application de gestion
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignIn} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email administrateur</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -63,7 +63,6 @@ const Auth = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="Entrez votre mot de passe sécurisé"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

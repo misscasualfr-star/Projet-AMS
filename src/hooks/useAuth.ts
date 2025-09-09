@@ -29,46 +29,6 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            full_name: fullName
-          }
-        }
-      });
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Erreur d'inscription",
-          description: error.message
-        });
-        return { error };
-      }
-
-      toast({
-        title: "Inscription réussie",
-        description: "Vérifiez votre email pour confirmer votre compte"
-      });
-
-      return { error: null };
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: error.message
-      });
-      return { error };
-    }
-  };
-
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -131,7 +91,6 @@ export const useAuth = () => {
     user,
     session,
     loading,
-    signUp,
     signIn,
     signOut
   };
