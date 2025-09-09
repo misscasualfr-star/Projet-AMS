@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ChantierModal } from "@/components/modales/ChantierModal";
+import { ClientModal } from "@/components/modales/ClientModal";
 import { useToast } from "@/hooks/use-toast";
 
 const navigationTabs = [
@@ -24,6 +25,12 @@ const navigationTabs = [
     label: "Salariés",
     icon: Users,
     description: "Gestion des salariés en insertion"
+  },
+  {
+    id: "disponibilites-salaries",
+    label: "Disponibilités salariés",
+    icon: Calendar,
+    description: "Disponibilités des salariés en insertion"
   },
   {
     id: "affectation",
@@ -52,15 +59,25 @@ interface NavigationProps {
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const [showChantierModal, setShowChantierModal] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
   const { toast } = useToast();
 
   const handleNewChantier = () => {
     setShowChantierModal(true);
   };
 
+  const handleNewClient = () => {
+    setShowClientModal(true);
+  };
+
   const handleSaveChantier = (chantier: any) => {
     console.log("Nouveau chantier créé:", chantier);
     toast({ title: "Succès", description: "Le chantier a été créé avec succès" });
+  };
+
+  const handleSaveClient = (client: any) => {
+    console.log("Nouveau client créé:", client);
+    toast({ title: "Succès", description: "Le client a été créé avec succès" });
   };
 
   return (
@@ -83,6 +100,9 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
             <Badge variant="secondary" className="px-3 py-1">
               Semaine 37 - 2025
             </Badge>
+            <Button size="sm" variant="outline" onClick={handleNewClient}>
+              + Nouveau client
+            </Button>
             <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={handleNewChantier}>
               + Nouveau chantier
             </Button>
@@ -116,6 +136,12 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
         open={showChantierModal} 
         onOpenChange={setShowChantierModal}
         onSave={handleSaveChantier}
+      />
+      
+      <ClientModal 
+        open={showClientModal} 
+        onOpenChange={setShowClientModal}
+        onSave={handleSaveClient}
       />
     </header>
   );
