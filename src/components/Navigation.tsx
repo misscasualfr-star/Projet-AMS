@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { ChantierModal } from "@/components/modales/ChantierModal";
 import { ClientModal } from "@/components/modales/ClientModal";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateClient, useUpdateClient } from "@/hooks/useClients";
+import { useCreateChantier, useUpdateChantier } from "@/hooks/useChantiers";
 
 const navigationTabs = [
   {
@@ -55,6 +57,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const [showChantierModal, setShowChantierModal] = useState(false);
   const [showClientModal, setShowClientModal] = useState(false);
   const { toast } = useToast();
+  const createClient = useCreateClient();
+  const createChantier = useCreateChantier();
 
   const handleNewChantier = () => {
     setShowChantierModal(true);
@@ -65,13 +69,25 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   };
 
   const handleSaveChantier = (chantier: any) => {
-    console.log("Nouveau chantier créé:", chantier);
-    toast({ title: "Succès", description: "Le chantier a été créé avec succès" });
+    if (chantier.id) {
+      // Modification (pas encore implémentée)
+      console.log("Modification chantier:", chantier);
+    } else {
+      // Création
+      const { id, ...chantierData } = chantier;
+      createChantier.mutate(chantierData);
+    }
   };
 
   const handleSaveClient = (client: any) => {
-    console.log("Nouveau client créé:", client);
-    toast({ title: "Succès", description: "Le client a été créé avec succès" });
+    if (client.id) {
+      // Modification (pas encore implémentée)  
+      console.log("Modification client:", client);
+    } else {
+      // Création
+      const { id, ...clientData } = client;
+      createClient.mutate(clientData);
+    }
   };
 
   return (

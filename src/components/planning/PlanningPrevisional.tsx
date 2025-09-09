@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { ChantierModal } from "@/components/modales/ChantierModal";
 import { useToast } from "@/hooks/use-toast";
+import { useCreateChantier } from "@/hooks/useChantiers";
 
 // Mock data for demonstration
 const clients = [
@@ -80,6 +81,7 @@ export function PlanningPrevisional() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [showChantierModal, setShowChantierModal] = useState(false);
   const { toast } = useToast();
+  const createChantier = useCreateChantier();
   
   const days = generateDays();
 
@@ -88,8 +90,8 @@ export function PlanningPrevisional() {
   };
 
   const handleSaveChantier = (chantier: any) => {
-    console.log("Nouveau chantier créé:", chantier);
-    toast({ title: "Succès", description: "Le chantier a été créé avec succès" });
+    const { id, ...chantierData } = chantier;
+    createChantier.mutate(chantierData);
   };
   
   const getClientColor = (clientId: number) => {

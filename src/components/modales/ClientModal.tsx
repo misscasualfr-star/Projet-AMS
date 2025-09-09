@@ -41,14 +41,12 @@ export function ClientModal({ open, onOpenChange, client, onSave }: ClientModalP
       return;
     }
 
-    const newClient = {
-      ...client,
+    const clientData = {
       ...formData,
-      id: client?.id || Date.now(),
+      ...(client?.id && { id: client.id }), // Seulement inclure l'ID si on modifie un client existant
     };
 
-    onSave?.(newClient);
-    toast({ title: "Succès", description: "Client sauvegardé avec succès" });
+    onSave?.(clientData);
     onOpenChange(false);
   };
 

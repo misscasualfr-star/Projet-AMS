@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          actif: boolean | null
+          adresse: string | null
+          contact: string | null
+          couleur: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          nom: string
+          telephone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actif?: boolean | null
+          adresse?: string | null
+          contact?: string | null
+          couleur?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nom: string
+          telephone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actif?: boolean | null
+          adresse?: string | null
+          contact?: string | null
+          couleur?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nom?: string
+          telephone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       disponibilites: {
         Row: {
           created_at: string | null

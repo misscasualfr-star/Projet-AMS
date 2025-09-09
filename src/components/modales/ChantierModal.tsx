@@ -11,6 +11,7 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useClients } from "@/hooks/useClients";
 
 interface ChantierModalProps {
   open: boolean;
@@ -19,15 +20,9 @@ interface ChantierModalProps {
   onSave?: (chantier: any) => void;
 }
 
-const clients = [
-  { id: 1, nom: "Client A" },
-  { id: 2, nom: "Client B" },
-  { id: 3, nom: "Mairie Locale" },
-  { id: 4, nom: "Seconde Pousse" },
-];
-
 export function ChantierModal({ open, onOpenChange, chantier, onSave }: ChantierModalProps) {
   const { toast } = useToast();
+  const { data: clients = [] } = useClients();
   const [formData, setFormData] = useState({
     client_id: chantier?.client_id || "",
     nom: chantier?.nom || "",
@@ -40,19 +35,20 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
   });
 
   const handleSave = () => {
-    if (!formData.client_id || !formData.nom || !formData.lieu || !formData.date) {
+    if (!formData.nom || !formData.lieu || !formData.date) {
       toast({ title: "Erreur", description: "Veuillez remplir tous les champs obligatoires", variant: "destructive" });
       return;
     }
 
-    const newChantier = {
-      ...chantier,
-      ...formData,
-      date: format(formData.date!, "yyyy-MM-dd"),
+    const chantierData = {
+      name: formData.nom,
+      description: formData.description,
+      address: formData.lieu,
+      start_date: format(formData.date!, "yyyy-MM-dd"),
+      ...(chantier?.id && { id: chantier.id }), // Seulement inclure l'ID si on modifie un chantier existant
     };
 
-    onSave?.(newChantier);
-    toast({ title: "Succès", description: "Chantier sauvegardé avec succès" });
+    onSave?.(chantierData);
     onOpenChange(false);
   };
 
@@ -68,13 +64,13 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="client">Client *</Label>
-            <Select value={formData.client_id.toString()} onValueChange={(value) => setFormData({...formData, client_id: parseInt(value)})}>
+            <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un client" />
               </SelectTrigger>
               <SelectContent>
                 {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id.toString()}>
+                  <SelectItem key={client.id} value={client.id}>
                     {client.nom}
                   </SelectItem>
                 ))}
