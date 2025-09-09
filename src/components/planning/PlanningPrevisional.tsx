@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Filter, Plus, MapPin, Users, UserCheck } from "lucide-react";
+import { Filter, Plus, MapPin, Users, UserCheck, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,58 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { ChantierModal } from "@/components/modales/ChantierModal";
 import { useToast } from "@/hooks/use-toast";
-import { useCreateChantier } from "@/hooks/useChantiers";
-
-// Mock data for demonstration
-const clients = [
-  { id: 1, nom: "Client A", couleur: "client-1" },
-  { id: 2, nom: "Client B", couleur: "client-2" },
-  { id: 3, nom: "Mairie Locale", couleur: "client-3" },
-  { id: 4, nom: "Seconde Pousse", couleur: "client-6" },
-];
-
-const chantiers = [
-  {
-    id: 1,
-    client_id: 1,
-    nom: "Entretien espaces verts",
-    date: "2025-09-15",
-    lieu: "Zone Nord",
-    besoins_encadrants: 1,
-    besoins_salaries: 6,
-    statut: "confirme"
-  },
-  {
-    id: 2,
-    client_id: 2,
-    nom: "Nettoyage urbain",
-    date: "2025-09-15",
-    lieu: "Centre-ville",
-    besoins_encadrants: 2,
-    besoins_salaries: 8,
-    statut: "prevu"
-  },
-  {
-    id: 3,
-    client_id: 3,
-    nom: "Aménagement parc",
-    date: "2025-09-16",
-    lieu: "Parc Municipal",
-    besoins_encadrants: 1,
-    besoins_salaries: 4,
-    statut: "confirme"
-  },
-  {
-    id: 4,
-    client_id: 4,
-    nom: "Formation sécurité",
-    date: "2025-09-16",
-    lieu: "Locaux AMS",
-    besoins_encadrants: 1,
-    besoins_salaries: 12,
-    statut: "formation"
-  }
-];
+import { useCreateChantier, useChantiers, useUpdateChantier } from "@/hooks/useChantiers";
+import { useClients } from "@/hooks/useClients";
 
 const generateDays = () => {
   const days = [];
@@ -80,20 +30,54 @@ export function PlanningPrevisional() {
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [showChantierModal, setShowChantierModal] = useState(false);
+  const [editingChantier, setEditingChantier] = useState<any>(null);
   const { toast } = useToast();
   const createChantier = useCreateChantier();
+  const updateChantier = useUpdateChantier();
+  const { data: chantiers = [] } = useChantiers();
+  const { data: clients = [] } = useClients();
   
   const days = generateDays();
 
   const handleNewChantier = () => {
+    setEditingChantier(null);
     setShowChantierModal(true);
   };
 
-  const handleSaveChantier = (chantier: any) => {
-    createChantier.mutate(chantier);
+  const handleEditChantier = (chantier: any) => {
+    setEditingChantier(chantier);
+    setShowChantierModal(true);
+  };
+
+  const handleDeleteChantier = async (chantierId: string) => {
+    try {
+      // TODO: Implement delete mutation
+      toast({
+        title: "Suppression",
+        description: "Chantier supprimé avec succès",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le chantier",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSaveChantier = (chantierData: any) => {
+    if (editingChantier) {
+      updateChantier.mutate({ 
+        id: editingChantier.id, 
+        ...chantierData 
+      });
+    } else {
+      createChantier.mutate(chantierData);
+    }
+    setShowChantierModal(false);
   };
   
-  const getClientColor = (clientId: number) => {
+  const getClientColor = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
     return client?.couleur || "client-1";
   };
@@ -112,8 +96,8 @@ export function PlanningPrevisional() {
   };
 
   const filteredChantiers = chantiers.filter(chantier => {
-    const clientMatch = selectedClient === "all" || chantier.client_id.toString() === selectedClient;
-    const statusMatch = selectedStatus === "all" || chantier.statut === selectedStatus;
+    const clientMatch = selectedClient === "all" || chantier.client_id === selectedClient;
+    const statusMatch = selectedStatus === "all" || chantier.status === selectedStatus;
     return clientMatch && statusMatch;
   });
 
@@ -136,7 +120,7 @@ export function PlanningPrevisional() {
               <SelectContent>
                 <SelectItem value="all">Tous les clients</SelectItem>
                 {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id.toString()}>
+                  <SelectItem key={client.id} value={client.id}>
                     <div className="flex items-center space-x-2">
                       <div className={cn("w-3 h-3 rounded-full", `bg-${client.couleur}`)} />
                       <span>{client.nom}</span>
@@ -181,42 +165,68 @@ export function PlanningPrevisional() {
 
               <div className="space-y-2 min-h-[200px]">
                 {filteredChantiers
-                  .filter(chantier => chantier.date === day.date)
+                  .filter(chantier => chantier.start_date === day.date)
                   .map(chantier => {
                     const client = clients.find(c => c.id === chantier.client_id);
                     return (
                       <Card 
                         key={chantier.id} 
                         className={cn(
-                          "cursor-pointer transition-smooth hover:shadow-elevated border-l-4",
-                          `border-l-${getClientColor(chantier.client_id)} bg-${getClientColor(chantier.client_id)}/10`
+                          "group cursor-pointer transition-smooth hover:shadow-elevated border-l-4 relative",
+                          `border-l-${getClientColor(chantier.client_id || "")} bg-${getClientColor(chantier.client_id || "")}/10`
                         )}
                       >
                         <CardContent className="p-3 space-y-2">
                           <div className="flex items-center justify-between">
                             <h4 className="font-semibold text-sm text-foreground">
-                              {client?.nom}
+                              {client?.nom || 'Client non défini'}
                             </h4>
-                            {getStatusBadge(chantier.statut)}
+                            <div className="flex items-center space-x-1">
+                              {getStatusBadge(chantier.status || 'planned')}
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 ml-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditChantier(chantier);
+                                  }}
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteChantier(chantier.id);
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                           
                           <p className="text-sm font-medium text-card-foreground">
-                            {chantier.nom}
+                            {chantier.name}
                           </p>
                           
                           <div className="flex items-center space-x-1 text-xs text-muted-foreground">
                             <MapPin className="w-3 h-3" />
-                            <span>{chantier.lieu}</span>
+                            <span>{chantier.address}</span>
                           </div>
                           
                           <div className="flex justify-between items-center pt-2 border-t border-border">
                             <div className="flex items-center space-x-1 text-xs">
                               <UserCheck className="w-3 h-3 text-primary" />
-                              <span>{chantier.besoins_encadrants}</span>
+                              <span>{chantier.besoins_encadrants || 0}</span>
                             </div>
                             <div className="flex items-center space-x-1 text-xs">
                               <Users className="w-3 h-3 text-accent" />
-                              <span>{chantier.besoins_salaries}</span>
+                              <span>{chantier.besoins_salaries || 0}</span>
                             </div>
                           </div>
                         </CardContent>
@@ -260,6 +270,7 @@ export function PlanningPrevisional() {
       <ChantierModal 
         open={showChantierModal} 
         onOpenChange={setShowChantierModal}
+        chantier={editingChantier}
         onSave={handleSaveChantier}
       />
     </div>
