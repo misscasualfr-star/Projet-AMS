@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { SalarieModal } from "@/components/modales/SalarieModal";
-import { useSalaries, useCreateSalarie, useUpdateSalarie } from "@/hooks/useSalaries";
+import { useSalaries, useCreateSalarie, useUpdateSalarie, useDeleteSalarie } from "@/hooks/useSalaries";
 import { useEncadrants, useDisponibilites, useUpdateDisponibilite } from "@/hooks/useEncadrants";
 import { useToast } from "@/hooks/use-toast";
 
@@ -45,6 +45,7 @@ export function Salaries() {
   const updateDisponibilite = useUpdateDisponibilite();
   const createSalarie = useCreateSalarie();
   const updateSalarie = useUpdateSalarie();
+  const deleteSalarie = useDeleteSalarie();
 
   const handleNewSalarie = () => {
     setEditingSalarie(null);
@@ -57,11 +58,7 @@ export function Salaries() {
   };
 
   const handleDeleteSalarie = (salarie: any) => {
-    toast({ 
-      title: "Suppression", 
-      description: `${salarie.nom} a été supprimé`,
-      variant: "destructive" 
-    });
+    deleteSalarie.mutate(salarie.id);
   };
 
   const handleSaveSalarie = (salarie: any) => {

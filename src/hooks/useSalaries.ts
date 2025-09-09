@@ -129,3 +129,34 @@ export function useUpdateSalarie() {
     }
   });
 }
+
+export function useDeleteSalarie() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('salaries')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['salaries'] });
+      toast({
+        title: "Succès",
+        description: "Salarié supprimé avec succès",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le salarié",
+        variant: "destructive"
+      });
+      console.error('Erreur suppression salarié:', error);
+    }
+  });
+}

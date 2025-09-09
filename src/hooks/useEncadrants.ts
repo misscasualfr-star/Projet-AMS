@@ -200,3 +200,34 @@ export function useUpdateDisponibilite() {
     }
   });
 }
+
+export function useDeleteEncadrant() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('encadrants')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['encadrants'] });
+      toast({
+        title: "Succès",
+        description: "Encadrant supprimé avec succès",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer l'encadrant",
+        variant: "destructive"
+      });
+      console.error('Erreur suppression encadrant:', error);
+    }
+  });
+}

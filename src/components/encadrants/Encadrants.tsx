@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { EncadrantModal } from "@/components/modales/EncadrantModal";
-import { useEncadrants, useDisponibilites, useUpdateDisponibilite, useCreateEncadrant, useUpdateEncadrant } from "@/hooks/useEncadrants";
+import { useEncadrants, useDisponibilites, useUpdateDisponibilite, useCreateEncadrant, useUpdateEncadrant, useDeleteEncadrant } from "@/hooks/useEncadrants";
 import { useSalaries } from "@/hooks/useSalaries";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,6 +43,7 @@ export function Encadrants() {
   const updateDisponibilite = useUpdateDisponibilite();
   const createEncadrant = useCreateEncadrant();
   const updateEncadrant = useUpdateEncadrant();
+  const deleteEncadrant = useDeleteEncadrant();
 
   // Fonction pour compter les salariés d'un encadrant
   const getSalariesCount = (encadrantId: string) => {
@@ -60,11 +61,7 @@ export function Encadrants() {
   };
 
   const handleDeleteEncadrant = (encadrant: any) => {
-    toast({ 
-      title: "Suppression", 
-      description: `${encadrant.nom} a été supprimé`,
-      variant: "destructive" 
-    });
+    deleteEncadrant.mutate(encadrant.id);
   };
 
   const handleSaveEncadrant = (encadrant: any) => {
