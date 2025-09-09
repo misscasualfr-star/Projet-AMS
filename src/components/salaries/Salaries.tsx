@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Phone, Mail, Car, Plus, Edit, Trash2, Filter } from "lucide-react";
+import { Users, Phone, Mail, Car, Plus, Edit, Trash2, Filter, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,12 +86,31 @@ const encadrants = [
   { id: 4, nom: "Sophie Lambert" }
 ];
 
+const generateWeekDays = () => {
+  const days = [];
+  const startDate = new Date(2025, 8, 15); // 15 septembre 2025 (lundi)
+  
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    days.push({
+      date: date.toISOString().split('T')[0],
+      day: date.getDate(),
+      weekday: date.toLocaleDateString('fr-FR', { weekday: 'short' })
+    });
+  }
+  return days;
+};
+
 export function Salaries() {
   const [selectedEncadrant, setSelectedEncadrant] = useState<string>("all");
   const [selectedStatut, setSelectedStatut] = useState<string>("all");
   const [showSalarieModal, setShowSalarieModal] = useState(false);
   const [editingSalarie, setEditingSalarie] = useState<any>(null);
+  const [view, setView] = useState<'list' | 'disponibilites'>('list');
   const { toast } = useToast();
+  
+  const weekDays = generateWeekDays();
 
   const handleNewSalarie = () => {
     setEditingSalarie(null);
@@ -113,6 +132,66 @@ export function Salaries() {
 
   const handleSaveSalarie = (salarie: any) => {
     console.log("Salarié sauvegardé:", salarie);
+  };
+
+  const handleAvailabilityClick = (salarieId: number, date: string) => {
+    const currentStatus = getAvailabilityStatus(salarieId, date);
+    const statusCycle = ['available', 'absent', 'suivi', 'formation'];
+    const currentIndex = statusCycle.indexOf(currentStatus);
+    const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
+    
+    toast({ 
+      title: "Disponibilité mise à jour", 
+      description: `${nextStatus === 'available' ? 'Disponible' : nextStatus} le ${new Date(date).toLocaleDateString('fr-FR')}` 
+    });
+  };
+  
+  // Mock availability data
+  const getAvailabilityStatus = (salarieId: number, date: string) => {
+    const day = new Date(date).getDay();
+    const isWeekend = day === 0 || day === 6;
+    
+    if (isWeekend) return 'weekend';
+    
+    // Random pattern for demo
+    const random = (salarieId * date.length) % 10;
+    if (random < 6) return 'available';
+    if (random < 8) return 'absent';
+    return 'suivi';
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'available':
+        return 'bg-available';
+      case 'absent':
+        return 'bg-absent';
+      case 'suivi':
+        return 'bg-suivi';
+      case 'formation':
+        return 'bg-formation';
+      case 'weekend':
+        return 'bg-muted';
+      default:
+        return 'bg-autre';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'available':
+        return 'Disponible';
+      case 'absent':
+        return 'Absent';
+      case 'suivi':
+        return 'Suivi';
+      case 'formation':
+        return 'Formation';
+      case 'weekend':
+        return 'Week-end';
+      default:
+        return 'Autre';
+    }
   };
 
   const filteredSalaries = salaries.filter(salarie => {
@@ -166,137 +245,234 @@ export function Salaries() {
               <Users className="w-5 h-5" />
               <span>Gestion des salariés en insertion</span>
             </CardTitle>
-            <Button className="bg-gradient-primary text-primary-foreground" onClick={handleNewSalarie}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau salarié
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant={view === 'list' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setView('list')}
+              >
+                Liste
+              </Button>
+              <Button
+                variant={view === 'disponibilites' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setView('disponibilites')}
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Disponibilités
+              </Button>
+              <Button className="bg-gradient-primary text-primary-foreground" onClick={handleNewSalarie}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau salarié
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-6 p-4 bg-muted rounded-lg">
-            <div className="flex items-center space-x-2">
-              <Filter className="w-4 h-4" />
-              <span className="text-sm font-medium">Filtres :</span>
-            </div>
-            
-            <Select value={selectedEncadrant} onValueChange={setSelectedEncadrant}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Encadrant référent" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les encadrants</SelectItem>
-                {encadrants.map(encadrant => (
-                  <SelectItem key={encadrant.id} value={encadrant.id.toString()}>
-                    {encadrant.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {view === 'list' ? (
+            <>
+              {/* Filters */}
+              <div className="flex flex-wrap gap-4 mb-6 p-4 bg-muted rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4" />
+                  <span className="text-sm font-medium">Filtres :</span>
+                </div>
+                
+                <Select value={selectedEncadrant} onValueChange={setSelectedEncadrant}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Encadrant référent" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les encadrants</SelectItem>
+                    {encadrants.map(encadrant => (
+                      <SelectItem key={encadrant.id} value={encadrant.id.toString()}>
+                        {encadrant.nom}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-            <Select value={selectedStatut} onValueChange={setSelectedStatut}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous</SelectItem>
-                <SelectItem value="actif">Actifs</SelectItem>
-                <SelectItem value="inactif">Inactifs</SelectItem>
-              </SelectContent>
-            </Select>
+                <Select value={selectedStatut} onValueChange={setSelectedStatut}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="actif">Actifs</SelectItem>
+                    <SelectItem value="inactif">Inactifs</SelectItem>
+                  </SelectContent>
+                </Select>
 
-            <Badge variant="secondary" className="px-3 py-1">
-              {filteredSalaries.length} salarié{filteredSalaries.length > 1 ? 's' : ''}
-            </Badge>
-          </div>
+                <Badge variant="secondary" className="px-3 py-1">
+                  {filteredSalaries.length} salarié{filteredSalaries.length > 1 ? 's' : ''}
+                </Badge>
+              </div>
 
-          {/* Table */}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Salarié</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Encadrant référent</TableHead>
-                <TableHead>Contrat</TableHead>
-                <TableHead>Niveau</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSalaries.map(salarie => {
-                const contractStatus = getContractStatus(salarie.contrat_debut, salarie.contrat_fin);
-                return (
-                  <TableRow key={salarie.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="w-8 h-8 bg-muted">
-                          <AvatarFallback className="text-foreground font-semibold text-xs">
+              {/* Table */}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Salarié</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Encadrant référent</TableHead>
+                    <TableHead>Contrat</TableHead>
+                    <TableHead>Niveau</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSalaries.map(salarie => {
+                    const contractStatus = getContractStatus(salarie.contrat_debut, salarie.contrat_fin);
+                    return (
+                      <TableRow key={salarie.id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="w-8 h-8 bg-muted">
+                              <AvatarFallback className="text-foreground font-semibold text-xs">
+                                {getInitials(salarie.nom)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium">{salarie.nom}</span>
+                                {salarie.conducteur && (
+                                  <div title="Titulaire du permis B">
+                                    <Car className="w-4 h-4 text-primary" />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center space-x-2 text-sm">
+                              <Phone className="w-3 h-3" />
+                              <span>{salarie.telephone}</span>
+                            </div>
+                            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                              <Mail className="w-3 h-3" />
+                              <span>{salarie.email}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-medium">{salarie.encadrant_referent}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="text-sm">
+                              {new Date(salarie.contrat_debut).toLocaleDateString('fr-FR')} - {new Date(salarie.contrat_fin).toLocaleDateString('fr-FR')}
+                            </div>
+                            <Badge className={contractStatus.variant === "destructive" ? "bg-absent text-white" : "bg-available text-white"}>
+                              {contractStatus.label}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getNiveauColor(salarie.niveau_autonomie)}>
+                            {salarie.niveau_autonomie}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={salarie.actif ? "bg-available text-white" : "bg-absent text-white"}>
+                            {salarie.actif ? "Actif" : "Inactif"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditSalarie(salarie)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteSalarie(salarie)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </>
+          ) : (
+            <div className="space-y-6">
+              {/* Calendar Header */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Semaine du 15 au 21 septembre 2025</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2 text-sm">
+                    <div className="w-3 h-3 rounded bg-available"></div>
+                    <span>Disponible</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <div className="w-3 h-3 rounded bg-absent"></div>
+                    <span>Absent</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <div className="w-3 h-3 rounded bg-suivi"></div>
+                    <span>Suivi</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <div className="w-3 h-3 rounded bg-formation"></div>
+                    <span>Formation</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Calendar Grid */}
+              <div className="border border-border rounded-lg overflow-hidden">
+                <div className="grid grid-cols-8 bg-muted">
+                  <div className="p-3 font-semibold text-sm">Salarié</div>
+                  {weekDays.map(day => (
+                    <div key={day.date} className="p-3 text-center">
+                      <div className="font-semibold text-sm">{day.weekday}</div>
+                      <div className="text-xs text-muted-foreground">{day.day}</div>
+                    </div>
+                  ))}
+                </div>
+                
+                {salaries.filter(s => s.actif).map(salarie => (
+                  <div key={salarie.id} className="grid grid-cols-8 border-t border-border">
+                    <div className="p-3 border-r border-border">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="w-6 h-6 bg-secondary">
+                          <AvatarFallback className="text-secondary-foreground font-semibold text-xs">
                             {getInitials(salarie.nom)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">{salarie.nom}</span>
-                            {salarie.conducteur && (
-                              <div title="Titulaire du permis B">
-                                <Car className="w-4 h-4 text-primary" />
-                              </div>
-                            )}
-                          </div>
+                          <div className="text-sm font-medium">{salarie.nom}</div>
+                          <div className="text-xs text-muted-foreground">{salarie.encadrant_referent}</div>
                         </div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center space-x-2 text-sm">
-                          <Phone className="w-3 h-3" />
-                          <span>{salarie.telephone}</span>
+                    </div>
+                    {weekDays.map(day => {
+                      const status = getAvailabilityStatus(salarie.id, day.date);
+                      return (
+                        <div
+                          key={`${salarie.id}-${day.date}`}
+                          className="p-3 border-r border-border cursor-pointer hover:bg-muted/50"
+                          title={getStatusLabel(status)}
+                          onClick={() => handleAvailabilityClick(salarie.id, day.date)}
+                        >
+                          <div className={cn(
+                            "w-full h-8 rounded transition-smooth",
+                            getStatusColor(status)
+                          )} />
                         </div>
-                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                          <Mail className="w-3 h-3" />
-                          <span>{salarie.email}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm font-medium">{salarie.encadrant_referent}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="text-sm">
-                          {new Date(salarie.contrat_debut).toLocaleDateString('fr-FR')} - {new Date(salarie.contrat_fin).toLocaleDateString('fr-FR')}
-                        </div>
-                        <Badge className={contractStatus.variant === "destructive" ? "bg-absent text-white" : "bg-available text-white"}>
-                          {contractStatus.label}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getNiveauColor(salarie.niveau_autonomie)}>
-                        {salarie.niveau_autonomie}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={salarie.actif ? "bg-available text-white" : "bg-absent text-white"}>
-                        {salarie.actif ? "Actif" : "Inactif"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleEditSalarie(salarie)}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteSalarie(salarie)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-sm text-muted-foreground">
+                💡 Cliquez sur une case pour modifier la disponibilité
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
       

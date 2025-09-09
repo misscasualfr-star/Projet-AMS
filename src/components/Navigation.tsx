@@ -27,12 +27,6 @@ const navigationTabs = [
     description: "Gestion des salariés en insertion"
   },
   {
-    id: "disponibilites-salaries",
-    label: "Disponibilités salariés",
-    icon: Calendar,
-    description: "Disponibilités des salariés en insertion"
-  },
-  {
     id: "affectation",
     label: "Affectation quotidienne",
     icon: LayoutDashboard,

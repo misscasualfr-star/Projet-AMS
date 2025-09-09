@@ -3,7 +3,6 @@ import { Navigation } from "@/components/Navigation";
 import { PlanningPrevisional } from "@/components/planning/PlanningPrevisional";
 import { Encadrants } from "@/components/encadrants/Encadrants";
 import { Salaries } from "@/components/salaries/Salaries";
-import { DisponibilitesSalaries } from "@/components/salaries/DisponibilitesSalaries";
 import { AffectationQuotidienne } from "@/components/affectation/AffectationQuotidienne";
 
 const Index = () => {
@@ -17,8 +16,6 @@ const Index = () => {
         return <Encadrants />;
       case "salaries":
         return <Salaries />;
-      case "disponibilites-salaries":
-        return <DisponibilitesSalaries />;
       case "affectation":
         return <AffectationQuotidienne />;
       case "hebdomadaire":
