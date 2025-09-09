@@ -37,13 +37,9 @@ export function EncadrantModal({ open, onOpenChange, encadrant, onSave }: Encadr
       return;
     }
 
-    const initiales = formData.nom.split(' ').map(part => part[0]).join('').toUpperCase();
-    
     const newEncadrant = {
-      ...encadrant,
       ...formData,
-      initiales,
-      id: encadrant?.id || Date.now(),
+      ...(encadrant?.id && { id: encadrant.id }), // Seulement inclure l'ID si on modifie un encadrant existant
     };
 
     onSave?.(newEncadrant);
