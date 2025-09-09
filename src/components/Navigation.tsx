@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Users, UserCheck, LayoutDashboard, FileText, CalendarDays } from "lucide-react";
+import { Calendar, Users, UserCheck, LayoutDashboard, FileText, CalendarDays, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { ClientModal } from "@/components/modales/ClientModal";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateClient, useUpdateClient } from "@/hooks/useClients";
 import { useCreateChantier, useUpdateChantier } from "@/hooks/useChantiers";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navigationTabs = [
   {
@@ -59,6 +60,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const { toast } = useToast();
   const createClient = useCreateClient();
   const createChantier = useCreateChantier();
+  const { signOut, user } = useAuth();
 
   const handleNewChantier = () => {
     setShowChantierModal(true);
@@ -112,6 +114,20 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
             <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={handleNewChantier}>
               + Nouveau chantier
             </Button>
+            <div className="flex items-center space-x-3 ml-4 pl-4 border-l border-border">
+              <span className="text-sm text-muted-foreground">
+                {user?.email}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => signOut()}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Déconnexion</span>
+              </Button>
+            </div>
           </div>
         </div>
 
