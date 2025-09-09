@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Calendar, LayoutDashboard, Users, UserCheck, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,89 +7,95 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { DatePickerModal } from "@/components/modales/DatePickerModal";
 import { useToast } from "@/hooks/use-toast";
+import { useChantiers } from "@/hooks/useChantiers";
+import { useEncadrants, useDisponibilites } from "@/hooks/useEncadrants";
+import { useSalaries } from "@/hooks/useSalaries";
+import { useClients } from "@/hooks/useClients";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-// Mock data for a specific day
-const selectedDate = "2025-09-16";
+interface DraggableItemProps {
+  id: string;
+  children: React.ReactNode;
+  className?: string;
+}
 
-const chantiersJour = [
-  {
-    id: 1,
-    client: "Client A",
-    chantier: "Entretien espaces verts", 
-    lieu: "Zone Nord",
-    besoins_encadrants: 1,
-    besoins_salaries: 6,
-    couleur_client: "client-1",
-    encadrants_affectes: [1],
-    commentaire: "RDV 7h30 - Matériel tondeuse et débroussailleuse"
-  },
-  {
-    id: 2,
-    client: "Mairie Locale",
-    chantier: "Aménagement parc",
-    lieu: "Parc Municipal", 
-    besoins_encadrants: 1,
-    besoins_salaries: 4,
-    couleur_client: "client-3",
-    encadrants_affectes: [],
-    commentaire: "Plantation d'arbustes - Apporter pelles et arrosoirs"
-  },
-  {
-    id: 3,
-    client: "Seconde Pousse",
-    chantier: "Formation sécurité",
-    lieu: "Locaux AMS",
-    besoins_encadrants: 1,
-    besoins_salaries: 12,
-    couleur_client: "client-6", 
-    encadrants_affectes: [],
-    commentaire: "Formation EPI obligatoire pour nouveaux arrivants"
-  }
-];
+function DraggableItem({ id, children, className }: DraggableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
 
-const encadrantsDisponibles = [
-  {
-    id: 1,
-    nom: "Jean Dupont",
-    initiales: "JD",
-    couleur: "bg-primary",
-    salaries_affectes: [1, 2, 3, 4, 5, 6],
-    deja_affecte_ailleurs: false
-  },
-  {
-    id: 2, 
-    nom: "Marie Martin",
-    initiales: "MM",
-    couleur: "bg-accent",
-    salaries_affectes: [],
-    deja_affecte_ailleurs: false
-  },
-  {
-    id: 3,
-    nom: "Pierre Durand", 
-    initiales: "PD",
-    couleur: "bg-available",
-    salaries_affectes: [],
-    deja_affecte_ailleurs: false
-  }
-];
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
-const salariesDisponibles = [
-  { id: 1, nom: "Alexandre Dubois", conducteur: true, encadrant_referent_id: 1 },
-  { id: 2, nom: "Fatima Benali", conducteur: false, encadrant_referent_id: 1 },
-  { id: 3, nom: "Mohamed Karimi", conducteur: true, encadrant_referent_id: 2 },
-  { id: 4, nom: "Sarah Moreau", conducteur: false, encadrant_referent_id: 2 },
-  { id: 5, nom: "David Rousseau", conducteur: true, encadrant_referent_id: 3 },
-  { id: 6, nom: "Lisa Petit", conducteur: false, encadrant_referent_id: 1 },
-  { id: 7, nom: "Ahmed Ziani", conducteur: false, encadrant_referent_id: 1 },
-  { id: 8, nom: "Julie Lefebvre", conducteur: true, encadrant_referent_id: 3 },
-];
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={className}>
+      {children}
+    </div>
+  );
+}
 
 export function AffectationQuotidienne() {
-  const [selectedChantier, setSelectedChantier] = useState<number | null>(null);
+  const [selectedChantier, setSelectedChantier] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [currentDate, setCurrentDate] = useState(new Date(selectedDate));
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [affectations, setAffectations] = useState<Record<string, { encadrant?: string; salaries: string[] }>>({});
+  
   const { toast } = useToast();
+  
+  // Data hooks
+  const { data: chantiers = [] } = useChantiers();
+  const { data: encadrants = [] } = useEncadrants();
+  const { data: salaries = [] } = useSalaries();
+  const { data: clients = [] } = useClients();
+  
+  // Format date for API calls
+  const dateString = currentDate.toISOString().split('T')[0];
+  
+  // Get disponibilités for current date
+  const { data: disponibilitesEncadrants = [] } = useDisponibilites('ENCADRANT', dateString, dateString);
+  const { data: disponibilitesSalaries = [] } = useDisponibilites('SALARIE', dateString, dateString);
+
+  // Sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: () => ({ x: 0, y: 0 }),
+    })
+  );
+
+  // Filter data for current date
+  const chantiersJour = useMemo(() => {
+    return chantiers.filter(chantier => {
+      const startDate = new Date(chantier.start_date);
+      const endDate = chantier.end_date ? new Date(chantier.end_date) : null;
+      
+      return startDate <= currentDate && (!endDate || endDate >= currentDate);
+    });
+  }, [chantiers, currentDate]);
+
+  const encadrantsDisponibles = useMemo(() => {
+    return encadrants.filter(encadrant => {
+      const dispo = disponibilitesEncadrants.find(d => d.personne_id === encadrant.id);
+      return !dispo || dispo.statut === 'available';
+    });
+  }, [encadrants, disponibilitesEncadrants]);
+
+  const salariesDisponibles = useMemo(() => {
+    return salaries.filter(salarie => {
+      const dispo = disponibilitesSalaries.find(d => d.personne_id === salarie.id);
+      return !dispo || dispo.statut === 'available';
+    });
+  }, [salaries, disponibilitesSalaries]);
 
   const handleDateChange = () => {
     setShowDatePicker(true);
@@ -97,6 +103,7 @@ export function AffectationQuotidienne() {
 
   const handleNewDate = (date: Date) => {
     setCurrentDate(date);
+    setAffectations({}); // Reset affectations when changing date
     toast({ title: "Date mise à jour", description: `Affectation pour le ${date.toLocaleDateString('fr-FR')}` });
   };
 
@@ -107,302 +114,390 @@ export function AffectationQuotidienne() {
     });
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over) return;
+
+    const draggedId = active.id as string;
+    const targetId = over.id as string;
+
+    // Check if dragging an encadrant to a chantier
+    if (encadrantsDisponibles.find(e => e.id === draggedId) && chantiersJour.find(c => c.id === targetId)) {
+      setAffectations(prev => ({
+        ...prev,
+        [targetId]: {
+          ...prev[targetId],
+          encadrant: draggedId,
+          salaries: prev[targetId]?.salaries || []
+        }
+      }));
+      
+      toast({
+        title: "Encadrant affecté",
+        description: "L'encadrant a été affecté au chantier"
+      });
+    }
+    
+    // Check if dragging a salarié to an encadrant
+    else if (salariesDisponibles.find(s => s.id === draggedId) && encadrantsDisponibles.find(e => e.id === targetId)) {
+      // Find which chantier this encadrant is assigned to
+      const chantierWithEncadrant = Object.entries(affectations).find(([_, aff]) => aff.encadrant === targetId);
+      
+      if (chantierWithEncadrant) {
+        const [chantierId] = chantierWithEncadrant;
+        setAffectations(prev => ({
+          ...prev,
+          [chantierId]: {
+            ...prev[chantierId],
+            salaries: [...(prev[chantierId]?.salaries || []), draggedId]
+          }
+        }));
+        
+        toast({
+          title: "Salarié affecté",
+          description: "Le salarié a été affecté à l'équipe"
+        });
+      }
+    }
+  };
+
+  const getClientColor = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    return client?.couleur || 'hsl(var(--primary))';
+  };
+
+  const getClientName = (clientId: string) => {
+    const client = clients.find(c => c.id === clientId);
+    return client?.nom || 'Client inconnu';
+  };
+
   // Calculate coverage indicators
   const totalChantiers = chantiersJour.length;
-  const chantiersAvecEncadrant = chantiersJour.filter(c => c.encadrants_affectes.length > 0).length;
-  const totalBesoinsEncadrants = chantiersJour.reduce((sum, c) => sum + c.besoins_encadrants, 0);
-  const totalEncadrantsAffectes = chantiersJour.reduce((sum, c) => sum + c.encadrants_affectes.length, 0);
+  const chantiersAvecEncadrant = Object.keys(affectations).filter(id => affectations[id]?.encadrant).length;
   
-  const totalBesoinsSalaries = chantiersJour.reduce((sum, c) => sum + c.besoins_salaries, 0);
-  const totalSalariesAffectes = encadrantsDisponibles.reduce((sum, e) => sum + e.salaries_affectes.length, 0);
+  const totalBesoinsEncadrants = chantiersJour.reduce((sum, c) => sum + (c.besoins_encadrants || 1), 0);
+  const totalEncadrantsAffectes = Object.values(affectations).filter(aff => aff.encadrant).length;
+  
+  const totalBesoinsSalaries = chantiersJour.reduce((sum, c) => sum + (c.besoins_salaries || 0), 0);
+  const totalSalariesAffectes = Object.values(affectations).reduce((sum, aff) => sum + aff.salaries.length, 0);
 
-  const getSalariesPourEncadrant = (encadrantId: number) => {
-    return salariesDisponibles.filter(s => 
-      encadrantsDisponibles.find(e => e.id === encadrantId)?.salaries_affectes.includes(s.id)
-    );
-  };
-
-  const getEncadrantPourChantier = (chantierId: number) => {
-    const chantier = chantiersJour.find(c => c.id === chantierId);
-    if (!chantier || chantier.encadrants_affectes.length === 0) return null;
+  const getSalariesPourChantier = (chantierId: string) => {
+    const chantierAffectation = affectations[chantierId];
+    if (!chantierAffectation?.salaries) return [];
     
-    const encadrantId = chantier.encadrants_affectes[0];
-    return encadrantsDisponibles.find(e => e.id === encadrantId);
+    return chantierAffectation.salaries.map(salarieId => 
+      salariesDisponibles.find(s => s.id === salarieId)
+    ).filter(Boolean);
   };
+
+  const getEncadrantPourChantier = (chantierId: string) => {
+    const chantierAffectation = affectations[chantierId];
+    if (!chantierAffectation?.encadrant) return null;
+    
+    return encadrantsDisponibles.find(e => e.id === chantierAffectation.encadrant);
+  };
+
+  // Get salaries not yet assigned
+  const salariesNonAffectes = salariesDisponibles.filter(salarie => 
+    !Object.values(affectations).some(aff => aff.salaries.includes(salarie.id))
+  );
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header with date and indicators */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center space-x-2">
-              <LayoutDashboard className="w-5 h-5" />
-              <span>Affectation quotidienne</span>
-              <Badge variant="outline" className="ml-4">
-                {new Date(selectedDate).toLocaleDateString('fr-FR', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </Badge>
-            </CardTitle>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm" onClick={handleDateChange}>
-                <Calendar className="w-4 h-4 mr-2" />
-                Changer de jour
-              </Button>
-              <Button className="bg-gradient-primary text-primary-foreground" onClick={handleValidateDay}>
-                Valider la journée
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Coverage indicators */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-foreground">
-                {chantiersAvecEncadrant}/{totalChantiers}
-              </div>
-              <div className="text-sm text-muted-foreground">Chantiers couverts</div>
-              <div className="w-full bg-border rounded-full h-2 mt-2">
-                <div 
-                  className="bg-primary h-2 rounded-full transition-smooth"
-                  style={{ width: `${(chantiersAvecEncadrant / totalChantiers) * 100}%` }}
-                />
-              </div>
-            </div>
-            
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-foreground">
-                {totalEncadrantsAffectes}/{totalBesoinsEncadrants}
-              </div>
-              <div className="text-sm text-muted-foreground">Encadrants affectés</div>
-              <div className="w-full bg-border rounded-full h-2 mt-2">
-                <div 
-                  className="bg-accent h-2 rounded-full transition-smooth"
-                  style={{ width: `${(totalEncadrantsAffectes / totalBesoinsEncadrants) * 100}%` }}
-                />
-              </div>
-            </div>
-            
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="text-2xl font-bold text-foreground">
-                {totalSalariesAffectes}/{totalBesoinsSalaries}
-              </div>
-              <div className="text-sm text-muted-foreground">Salariés affectés</div>
-              <div className="w-full bg-border rounded-full h-2 mt-2">
-                <div 
-                  className="bg-available h-2 rounded-full transition-smooth"
-                  style={{ width: `${(totalSalariesAffectes / totalBesoinsSalaries) * 100}%` }}
-                />
-              </div>
-            </div>
-            
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <div className="flex items-center justify-center space-x-2">
-                {(chantiersAvecEncadrant === totalChantiers && totalSalariesAffectes >= totalBesoinsSalaries) ? (
-                  <CheckCircle className="w-6 h-6 text-available" />
-                ) : (
-                  <AlertTriangle className="w-6 h-6 text-suivi" />
-                )}
-              </div>
-              <div className="text-sm text-muted-foreground mt-2">
-                {(chantiersAvecEncadrant === totalChantiers && totalSalariesAffectes >= totalBesoinsSalaries) 
-                  ? "Journée complète" 
-                  : "Affectation incomplète"}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Drag & Drop Boards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Column 1: Chantiers du jour */}
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <div className="space-y-6 p-6">
+        {/* Header with date and indicators */}
         <Card className="shadow-card">
           <CardHeader>
-            <CardTitle className="text-lg">Chantiers du jour</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2">
+                <LayoutDashboard className="w-5 h-5" />
+                <span>Affectation quotidienne</span>
+                <Badge variant="outline" className="ml-4">
+                  {currentDate.toLocaleDateString('fr-FR', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </Badge>
+              </CardTitle>
+              <div className="flex items-center space-x-4">
+                <Button variant="outline" size="sm" onClick={handleDateChange}>
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Changer de jour
+                </Button>
+                <Button className="bg-gradient-primary text-primary-foreground" onClick={handleValidateDay}>
+                  Valider la journée
+                </Button>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {chantiersJour.map(chantier => {
-              const encadrant = getEncadrantPourChantier(chantier.id);
-              const salariesAffectes = encadrant ? getSalariesPourEncadrant(encadrant.id) : [];
+          <CardContent>
+            {/* Coverage indicators */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-foreground">
+                  {chantiersAvecEncadrant}/{totalChantiers}
+                </div>
+                <div className="text-sm text-muted-foreground">Chantiers couverts</div>
+                <div className="w-full bg-border rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-primary h-2 rounded-full transition-smooth"
+                    style={{ width: totalChantiers > 0 ? `${(chantiersAvecEncadrant / totalChantiers) * 100}%` : '0%' }}
+                  />
+                </div>
+              </div>
               
-              return (
-                <Card 
-                  key={chantier.id}
-                  className={cn(
-                    "cursor-pointer transition-smooth hover:shadow-elevated border-l-4",
-                    `border-l-${chantier.couleur_client} bg-${chantier.couleur_client}/10`,
-                    selectedChantier === chantier.id ? "ring-2 ring-primary" : ""
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-foreground">
+                  {totalEncadrantsAffectes}/{totalBesoinsEncadrants}
+                </div>
+                <div className="text-sm text-muted-foreground">Encadrants affectés</div>
+                <div className="w-full bg-border rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-accent h-2 rounded-full transition-smooth"
+                    style={{ width: totalBesoinsEncadrants > 0 ? `${(totalEncadrantsAffectes / totalBesoinsEncadrants) * 100}%` : '0%' }}
+                  />
+                </div>
+              </div>
+              
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-foreground">
+                  {totalSalariesAffectes}/{totalBesoinsSalaries}
+                </div>
+                <div className="text-sm text-muted-foreground">Salariés affectés</div>
+                <div className="w-full bg-border rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-available h-2 rounded-full transition-smooth"
+                    style={{ width: totalBesoinsSalaries > 0 ? `${(totalSalariesAffectes / totalBesoinsSalaries) * 100}%` : '0%' }}
+                  />
+                </div>
+              </div>
+              
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="flex items-center justify-center space-x-2">
+                  {(chantiersAvecEncadrant === totalChantiers && totalSalariesAffectes >= totalBesoinsSalaries) ? (
+                    <CheckCircle className="w-6 h-6 text-available" />
+                  ) : (
+                    <AlertTriangle className="w-6 h-6 text-suivi" />
                   )}
-                  onClick={() => setSelectedChantier(chantier.id)}
-                >
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold text-sm text-foreground">
-                          {chantier.client}
-                        </h4>
-                        <p className="text-sm font-medium text-card-foreground">
-                          {chantier.chantier}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {chantier.lieu}
-                        </p>
-                      </div>
-                      {chantier.encadrants_affectes.length === 0 && (
-                        <AlertTriangle className="w-5 h-5 text-suivi" />
-                      )}
-                    </div>
+                </div>
+                <div className="text-sm text-muted-foreground mt-2">
+                  {(chantiersAvecEncadrant === totalChantiers && totalSalariesAffectes >= totalBesoinsSalaries) 
+                    ? "Journée complète" 
+                    : "Affectation incomplète"}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                    {/* Encadrant affecté */}
-                    {encadrant && (
-                      <div className="pt-2 border-t border-border">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Avatar className={cn("w-6 h-6", encadrant.couleur)}>
-                            <AvatarFallback className="text-white font-semibold text-xs">
+        {/* Drag & Drop Boards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Column 1: Chantiers du jour */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-lg">Chantiers du jour ({chantiersJour.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {chantiersJour.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Aucun chantier prévu pour cette date</p>
+                </div>
+              ) : (
+                chantiersJour.map(chantier => {
+                  const encadrant = getEncadrantPourChantier(chantier.id);
+                  const salariesAffectes = getSalariesPourChantier(chantier.id);
+                  
+                  return (
+                    <Card 
+                      key={chantier.id}
+                      className={cn(
+                        "cursor-pointer transition-smooth hover:shadow-elevated border-l-4 relative",
+                        selectedChantier === chantier.id ? "ring-2 ring-primary" : ""
+                      )}
+                      onClick={() => setSelectedChantier(chantier.id)}
+                      style={{ borderLeftColor: getClientColor(chantier.client_id || '') }}
+                    >
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-sm text-foreground">
+                              {getClientName(chantier.client_id || '')}
+                            </h4>
+                            <p className="text-sm font-medium text-card-foreground">
+                              {chantier.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {chantier.address}
+                            </p>
+                          </div>
+                          {!encadrant && (
+                            <AlertTriangle className="w-5 h-5 text-suivi" />
+                          )}
+                        </div>
+
+                        {/* Encadrant affecté */}
+                        {encadrant && (
+                          <div className="pt-2 border-t border-border">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Avatar className="w-6 h-6" style={{ backgroundColor: encadrant.couleur }}>
+                                <AvatarFallback className="text-white font-semibold text-xs">
+                                  {encadrant.initiales}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium">{encadrant.nom}</span>
+                            </div>
+                            
+                            {/* Salariés affectés */}
+                            {salariesAffectes.length > 0 && (
+                              <div className="space-y-1">
+                                <div className="text-xs text-muted-foreground">Équipe :</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {salariesAffectes.map(salarie => (
+                                    <Badge 
+                                      key={salarie?.id} 
+                                      variant="secondary" 
+                                      className="text-xs flex items-center space-x-1"
+                                    >
+                                      <span>{salarie?.nom.split(' ')[0]}</span>
+                                      {salarie?.conducteur && <span>🚗</span>}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Besoins */}
+                        <div className="flex justify-between items-center pt-2 border-t border-border">
+                          <div className="flex items-center space-x-1 text-xs">
+                            <UserCheck className="w-3 h-3 text-primary" />
+                            <span>{encadrant ? 1 : 0}/{chantier.besoins_encadrants || 1}</span>
+                          </div>
+                          <div className="flex items-center space-x-1 text-xs">
+                            <Users className="w-3 h-3 text-accent" />
+                            <span>{salariesAffectes.length}/{chantier.besoins_salaries || 0}</span>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        {chantier.description && (
+                          <div className="pt-2 border-t border-border">
+                            <p className="text-xs text-muted-foreground italic">
+                              💬 {chantier.description}
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                      
+                      {/* Drop zone overlay */}
+                      <div className="absolute inset-0 pointer-events-none" />
+                    </Card>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Column 2: Encadrants disponibles */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-lg">Encadrants disponibles ({encadrantsDisponibles.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {encadrantsDisponibles.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Aucun encadrant disponible</p>
+                </div>
+              ) : (
+                encadrantsDisponibles.map(encadrant => (
+                  <DraggableItem 
+                    key={encadrant.id} 
+                    id={encadrant.id}
+                    className="cursor-move"
+                  >
+                    <Card className="transition-smooth hover:shadow-elevated bg-gradient-surface">
+                      <CardContent className="p-3">
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="w-8 h-8" style={{ backgroundColor: encadrant.couleur }}>
+                            <AvatarFallback className="text-white font-semibold text-sm">
                               {encadrant.initiales}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm font-medium">{encadrant.nom}</span>
-                        </div>
-                        
-                        {/* Salariés affectés */}
-                        {salariesAffectes.length > 0 && (
-                          <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground">Équipe :</div>
-                            <div className="flex flex-wrap gap-1">
-                              {salariesAffectes.map(salarie => (
-                                <Badge 
-                                  key={salarie.id} 
-                                  variant="secondary" 
-                                  className="text-xs flex items-center space-x-1"
-                                >
-                                  <span>{salarie.nom.split(' ')[0]}</span>
-                                  {salarie.conducteur && <span>🚗</span>}
-                                </Badge>
-                              ))}
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium text-sm">{encadrant.nom}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Disponible pour affectation
                             </div>
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </DraggableItem>
+                ))
+              )}
+            </CardContent>
+          </Card>
 
-                    {/* Besoins */}
-                    <div className="flex justify-between items-center pt-2 border-t border-border">
-                      <div className="flex items-center space-x-1 text-xs">
-                        <UserCheck className="w-3 h-3 text-primary" />
-                        <span>{chantier.encadrants_affectes.length}/{chantier.besoins_encadrants}</span>
-                      </div>
-                      <div className="flex items-center space-x-1 text-xs">
-                        <Users className="w-3 h-3 text-accent" />
-                        <span>{salariesAffectes.length}/{chantier.besoins_salaries}</span>
-                      </div>
-                    </div>
+          {/* Column 3: Salariés disponibles */}
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="text-lg">Salariés disponibles ({salariesNonAffectes.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {salariesNonAffectes.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Aucun salarié disponible</p>
+                </div>
+              ) : (
+                salariesNonAffectes.map(salarie => (
+                  <DraggableItem 
+                    key={salarie.id} 
+                    id={salarie.id}
+                    className="cursor-move"
+                  >
+                    <Card className="transition-smooth hover:shadow-card bg-gradient-surface">
+                      <CardContent className="p-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">{salarie.nom}</span>
+                          <div className="flex items-center space-x-1">
+                            {salarie.conducteur && (
+                              <Badge variant="secondary" className="text-xs">🚗</Badge>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </DraggableItem>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-                    {/* Commentaire */}
-                    {chantier.commentaire && (
-                      <div className="pt-2 border-t border-border">
-                        <p className="text-xs text-muted-foreground italic">
-                          💬 {chantier.commentaire}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        {/* Column 2: Encadrants disponibles */}
+        {/* Instructions */}
         <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Encadrants disponibles</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {encadrantsDisponibles.map(encadrant => (
-              <Card 
-                key={encadrant.id}
-                className="cursor-move transition-smooth hover:shadow-elevated bg-gradient-surface"
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className={cn("w-8 h-8", encadrant.couleur)}>
-                      <AvatarFallback className="text-white font-semibold text-sm">
-                        {encadrant.initiales}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium text-sm">{encadrant.nom}</span>
-                        {encadrant.deja_affecte_ailleurs && (
-                          <Badge variant="secondary" className="text-xs">
-                            Multi-affecté
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {encadrant.salaries_affectes.length} salarié{encadrant.salaries_affectes.length > 1 ? 's' : ''} affecté{encadrant.salaries_affectes.length > 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <CardContent className="p-4">
+            <div className="text-sm text-muted-foreground">
+              💡 <strong>Instructions :</strong> Glissez les encadrants vers les chantiers pour les affecter. 
+              Glissez ensuite les salariés vers les encadrants déjà affectés pour former les équipes.
+            </div>
           </CardContent>
         </Card>
-
-        {/* Column 3: Salariés disponibles */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="text-lg">Salariés disponibles</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {salariesDisponibles
-              .filter(salarie => !encadrantsDisponibles.some(e => e.salaries_affectes.includes(salarie.id)))
-              .map(salarie => (
-                <Card 
-                  key={salarie.id}
-                  className="cursor-move transition-smooth hover:shadow-card bg-gradient-surface"
-                >
-                  <CardContent className="p-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">{salarie.nom}</span>
-                      <div className="flex items-center space-x-1">
-                        {salarie.conducteur && (
-                          <Badge variant="secondary" className="text-xs">🚗</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-          </CardContent>
-        </Card>
+        
+        <DatePickerModal 
+          open={showDatePicker} 
+          onOpenChange={setShowDatePicker}
+          selectedDate={currentDate}
+          onDateChange={handleNewDate}
+          title="Sélectionner le jour d'affectation"
+        />
       </div>
-
-      {/* Instructions */}
-      <Card className="shadow-card">
-        <CardContent className="p-4">
-          <div className="text-sm text-muted-foreground">
-            💡 <strong>Instructions :</strong> Glissez les encadrants vers les chantiers, puis glissez les salariés sous les encadrants. 
-            Les salariés grisés ne sont pas disponibles ce jour-là.
-          </div>
-        </CardContent>
-      </Card>
-      
-      <DatePickerModal 
-        open={showDatePicker} 
-        onOpenChange={setShowDatePicker}
-        selectedDate={currentDate}
-        onDateChange={handleNewDate}
-        title="Sélectionner le jour d'affectation"
-      />
-    </div>
+    </DndContext>
   );
 }
