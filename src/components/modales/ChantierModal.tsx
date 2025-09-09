@@ -35,11 +35,7 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
   });
 
   const handleSave = () => {
-    console.log("=== DEBUT handleSave ChantierModal ===");
-    console.log("formData:", formData);
-    
     if (!formData.nom || !formData.lieu || !formData.date) {
-      console.log("Validation échouée - champs manquants");
       toast({ title: "Erreur", description: "Veuillez remplir tous les champs obligatoires", variant: "destructive" });
       return;
     }
@@ -50,12 +46,9 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
       address: formData.lieu,
       start_date: format(formData.date!, "yyyy-MM-dd"),
       status: 'planned',
-      ...(chantier?.id && { id: chantier.id }), // Seulement inclure l'ID si on modifie un chantier existant
+      ...(chantier?.id && { id: chantier.id }),
     };
 
-    console.log("chantierData à sauvegarder:", chantierData);
-    console.log("onSave fonction existe?", !!onSave);
-    
     onSave?.(chantierData);
     onOpenChange(false);
   };
