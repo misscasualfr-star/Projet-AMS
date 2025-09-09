@@ -55,6 +55,7 @@ export function PlanningPrevisional() {
   };
 
   const handleSaveChantier = (chantierData: any) => {
+    console.log('Données du chantier à sauvegarder:', chantierData);
     if (editingChantier) {
       updateChantier.mutate({ 
         id: editingChantier.id, 
@@ -157,9 +158,6 @@ export function PlanningPrevisional() {
                   .filter(chantier => chantier.start_date === day.date)
                   .map(chantier => {
                     const client = clients.find(c => c.id === chantier.client_id);
-                    console.log('Chantier:', chantier);
-                    console.log('Client trouvé:', client);
-                    console.log('Client ID:', chantier.client_id);
                     return (
                       <Card 
                         key={chantier.id} 
