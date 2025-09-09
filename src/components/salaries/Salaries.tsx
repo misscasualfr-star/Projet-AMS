@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Users, Phone, Mail, Car, Plus, Edit, Trash2, Filter, Calendar } from "lucide-react";
+import { Users, Phone, Mail, Car, Plus, Edit, Trash2, Filter, Calendar, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { SalarieModal } from "@/components/modales/SalarieModal";
 import { useSalaries, useCreateSalarie, useUpdateSalarie, useDeleteSalarie } from "@/hooks/useSalaries";
@@ -39,13 +40,40 @@ export function Salaries() {
   const { toast } = useToast();
   
   const weekDays = generateWeekDays();
-  const { data: salaries = [], isLoading } = useSalaries();
+  const { data: salaries = [], isLoading, error } = useSalaries();
   const { data: encadrants = [] } = useEncadrants();
   const { data: disponibilites = [] } = useDisponibilites('SALARIE', weekDays[0]?.date, weekDays[weekDays.length - 1]?.date);
   const updateDisponibilite = useUpdateDisponibilite();
   const createSalarie = useCreateSalarie();
   const updateSalarie = useUpdateSalarie();
   const deleteSalarie = useDeleteSalarie();
+
+  // Vérifier si l'utilisateur n'a pas accès aux données
+  const isAccessDenied = error?.message.includes('admin');
+
+  if (isAccessDenied) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold tracking-tight">Salariés</h2>
+            <p className="text-muted-foreground">
+              Gestion des salariés en parcours d'insertion
+            </p>
+          </div>
+        </div>
+        
+        <Alert className="border-orange-200 bg-orange-50">
+          <Shield className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            <strong>Accès restreint :</strong> Seuls les administrateurs peuvent accéder aux données personnelles des salariés pour des raisons de confidentialité et de sécurité.
+            <br />
+            <span className="text-sm">Contactez votre administrateur si vous avez besoin d'accéder à ces informations.</span>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const handleNewSalarie = () => {
     setEditingSalarie(null);

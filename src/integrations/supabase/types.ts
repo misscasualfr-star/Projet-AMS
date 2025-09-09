@@ -511,7 +511,7 @@ export type Database = {
       }
     }
     Views: {
-      salaries_public: {
+      salaries_safe: {
         Row: {
           actif: boolean | null
           conducteur: boolean | null

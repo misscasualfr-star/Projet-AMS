@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface Salarie {
   id: string;
@@ -19,9 +20,16 @@ export interface Salarie {
 }
 
 export function useSalaries() {
+  const { user } = useAuth();
+  
   return useQuery({
     queryKey: ['salaries'],
     queryFn: async () => {
+      // Seuls les administrateurs peuvent voir les données des salariés
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
       const { data, error } = await supabase
         .from('salaries')
         .select(`
@@ -30,15 +38,23 @@ export function useSalaries() {
         `)
         .order('nom');
       
-      if (error) throw error;
+      if (error) {
+        // Si l'utilisateur n'est pas admin, il n'aura pas accès aux données
+        console.log('Access denied to salaries data - admin role required');
+        throw new Error('Access denied - admin role required');
+      }
+      
       return data as Salarie[];
     },
+    enabled: !!user, // Ne lance la requête que si l'utilisateur est connecté
+    retry: false, // Ne pas retry si l'accès est refusé
   });
 }
 
 export function useCreateSalarie() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async (salarie: {
@@ -52,6 +68,10 @@ export function useCreateSalarie() {
       contrat_fin: string;
       niveau_autonomie: string;
     }) => {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
       const { data, error } = await supabase
         .from('salaries')
         .insert(salarie)
@@ -59,7 +79,7 @@ export function useCreateSalarie() {
           *,
           encadrants:encadrant_referent_id(nom)
         `)
-        .single();
+        .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
       
       if (error) throw error;
       return data;
@@ -72,9 +92,13 @@ export function useCreateSalarie() {
       });
     },
     onError: (error) => {
+      const message = error.message.includes('admin') 
+        ? "Seuls les administrateurs peuvent créer des salariés"
+        : "Impossible de créer le salarié";
+      
       toast({
         title: "Erreur",
-        description: "Impossible de créer le salarié",
+        description: message,
         variant: "destructive"
       });
       console.error('Erreur création salarié:', error);
@@ -85,6 +109,7 @@ export function useCreateSalarie() {
 export function useUpdateSalarie() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async ({ id, ...salarie }: {
@@ -99,6 +124,10 @@ export function useUpdateSalarie() {
       contrat_fin: string;
       niveau_autonomie: string;
     }) => {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
       const { data, error } = await supabase
         .from('salaries')
         .update(salarie)
@@ -107,7 +136,7 @@ export function useUpdateSalarie() {
           *,
           encadrants:encadrant_referent_id(nom)
         `)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
@@ -120,9 +149,13 @@ export function useUpdateSalarie() {
       });
     },
     onError: (error) => {
+      const message = error.message.includes('admin') 
+        ? "Seuls les administrateurs peuvent modifier des salariés"
+        : "Impossible de modifier le salarié";
+        
       toast({
         title: "Erreur",
-        description: "Impossible de modifier le salarié",
+        description: message,
         variant: "destructive"
       });
       console.error('Erreur modification salarié:', error);
@@ -133,9 +166,14 @@ export function useUpdateSalarie() {
 export function useDeleteSalarie() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
       const { error } = await supabase
         .from('salaries')
         .delete()
@@ -151,9 +189,13 @@ export function useDeleteSalarie() {
       });
     },
     onError: (error) => {
+      const message = error.message.includes('admin') 
+        ? "Seuls les administrateurs peuvent supprimer des salariés"
+        : "Impossible de supprimer le salarié";
+        
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer le salarié",
+        description: message,
         variant: "destructive"
       });
       console.error('Erreur suppression salarié:', error);
