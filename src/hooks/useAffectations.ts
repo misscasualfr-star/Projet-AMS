@@ -27,6 +27,22 @@ export const useAffectations = (date: string) => {
   });
 };
 
+export const useWeekAffectations = (weekDates: string[]) => {
+  return useQuery({
+    queryKey: ["affectations-week", weekDates],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("affectations")
+        .select("*")
+        .in("date", weekDates);
+
+      if (error) throw error;
+      return data as Affectation[];
+    },
+    enabled: weekDates.length > 0,
+  });
+};
+
 export const useCreateAffectation = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
