@@ -55,6 +55,98 @@ export function useDisponibilites(personneType: 'ENCADRANT' | 'SALARIE', dateFro
   });
 }
 
+export function useCreateEncadrant() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (encadrant: {
+      nom: string;
+      telephone: string;
+      email: string;
+      couleur: string;
+      actif: boolean;
+    }) => {
+      // Génerer les initiales
+      const initiales = encadrant.nom.split(' ').map(part => part[0]).join('').toUpperCase();
+      
+      const { data, error } = await supabase
+        .from('encadrants')
+        .insert({
+          ...encadrant,
+          initiales
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['encadrants'] });
+      toast({
+        title: "Succès",
+        description: "Encadrant créé avec succès",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer l'encadrant",
+        variant: "destructive"
+      });
+      console.error('Erreur création encadrant:', error);
+    }
+  });
+}
+
+export function useUpdateEncadrant() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...encadrant }: {
+      id: string;
+      nom: string;
+      telephone: string;
+      email: string;
+      couleur: string;
+      actif: boolean;
+    }) => {
+      // Génerer les initiales
+      const initiales = encadrant.nom.split(' ').map(part => part[0]).join('').toUpperCase();
+      
+      const { data, error } = await supabase
+        .from('encadrants')
+        .update({
+          ...encadrant,
+          initiales
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['encadrants'] });
+      toast({
+        title: "Succès",
+        description: "Encadrant modifié avec succès",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de modifier l'encadrant",
+        variant: "destructive"
+      });
+      console.error('Erreur modification encadrant:', error);
+    }
+  });
+}
+
 export function useUpdateDisponibilite() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

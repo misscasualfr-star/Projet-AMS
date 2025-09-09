@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { EncadrantModal } from "@/components/modales/EncadrantModal";
-import { useEncadrants, useDisponibilites, useUpdateDisponibilite } from "@/hooks/useEncadrants";
+import { useEncadrants, useDisponibilites, useUpdateDisponibilite, useCreateEncadrant, useUpdateEncadrant } from "@/hooks/useEncadrants";
 import { useToast } from "@/hooks/use-toast";
 
 // Remove mock data - using Supabase data now
@@ -39,6 +39,8 @@ export function Encadrants() {
   const { data: encadrants = [], isLoading } = useEncadrants();
   const { data: disponibilites = [] } = useDisponibilites('ENCADRANT', weekDays[0]?.date, weekDays[weekDays.length - 1]?.date);
   const updateDisponibilite = useUpdateDisponibilite();
+  const createEncadrant = useCreateEncadrant();
+  const updateEncadrant = useUpdateEncadrant();
 
   const handleNewEncadrant = () => {
     setEditingEncadrant(null);
@@ -59,7 +61,16 @@ export function Encadrants() {
   };
 
   const handleSaveEncadrant = (encadrant: any) => {
-    console.log("Encadrant sauvegardé:", encadrant);
+    if (editingEncadrant) {
+      // Modification
+      updateEncadrant.mutate({
+        id: editingEncadrant.id,
+        ...encadrant
+      });
+    } else {
+      // Création
+      createEncadrant.mutate(encadrant);
+    }
   };
 
   const handleAvailabilityClick = (encadrantId: string, date: string) => {

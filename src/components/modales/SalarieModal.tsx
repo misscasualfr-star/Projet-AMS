@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useEncadrants } from "@/hooks/useEncadrants";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
@@ -20,13 +21,6 @@ interface SalarieModalProps {
   onSave?: (salarie: any) => void;
 }
 
-const encadrants = [
-  { id: 1, nom: "Jean Dupont" },
-  { id: 2, nom: "Marie Martin" },
-  { id: 3, nom: "Pierre Durand" },
-  { id: 4, nom: "Sophie Lambert" }
-];
-
 const niveauxAutonomie = [
   "Débutant",
   "Intermédiaire", 
@@ -35,6 +29,8 @@ const niveauxAutonomie = [
 
 export function SalarieModal({ open, onOpenChange, salarie, onSave }: SalarieModalProps) {
   const { toast } = useToast();
+  const { data: encadrants = [] } = useEncadrants();
+  
   const [formData, setFormData] = useState({
     nom: salarie?.nom || "",
     telephone: salarie?.telephone || "",
@@ -52,20 +48,15 @@ export function SalarieModal({ open, onOpenChange, salarie, onSave }: SalarieMod
       toast({ title: "Erreur", description: "Veuillez remplir tous les champs obligatoires", variant: "destructive" });
       return;
     }
-
-    const encadrantReferent = encadrants.find(e => e.id.toString() === formData.encadrant_referent_id.toString());
     
     const newSalarie = {
-      ...salarie,
       ...formData,
-      encadrant_referent: encadrantReferent?.nom,
       contrat_debut: format(formData.contrat_debut!, "yyyy-MM-dd"),
       contrat_fin: format(formData.contrat_fin!, "yyyy-MM-dd"),
-      id: salarie?.id || Date.now(),
+      id: salarie?.id
     };
 
     onSave?.(newSalarie);
-    toast({ title: "Succès", description: "Salarié sauvegardé avec succès" });
     onOpenChange(false);
   };
 
@@ -112,13 +103,13 @@ export function SalarieModal({ open, onOpenChange, salarie, onSave }: SalarieMod
 
           <div className="space-y-2">
             <Label htmlFor="encadrant">Encadrant référent *</Label>
-            <Select value={formData.encadrant_referent_id.toString()} onValueChange={(value) => setFormData({...formData, encadrant_referent_id: parseInt(value)})}>
+            <Select value={formData.encadrant_referent_id} onValueChange={(value) => setFormData({...formData, encadrant_referent_id: value})}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un encadrant" />
               </SelectTrigger>
               <SelectContent>
                 {encadrants.map(encadrant => (
-                  <SelectItem key={encadrant.id} value={encadrant.id.toString()}>
+                  <SelectItem key={encadrant.id} value={encadrant.id}>
                     {encadrant.nom}
                   </SelectItem>
                 ))}
