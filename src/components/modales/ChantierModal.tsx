@@ -28,14 +28,15 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
     name: chantier?.name || "",
     description: chantier?.description || "",
     address: chantier?.address || "",
-    date: chantier?.start_date ? new Date(chantier.start_date) : undefined,
+    start_date: chantier?.start_date ? new Date(chantier.start_date) : undefined,
+    end_date: chantier?.end_date ? new Date(chantier.end_date) : undefined,
     besoins_encadrants: chantier?.besoins_encadrants || 1,
     besoins_salaries: chantier?.besoins_salaries || 6,
     type: chantier?.type || "INTERVENTION",
   });
 
   const handleSave = () => {
-    if (!formData.name || !formData.address || !formData.date || !formData.client_id) {
+    if (!formData.name || !formData.address || !formData.start_date || !formData.client_id) {
       toast({ title: "Erreur", description: "Veuillez remplir tous les champs obligatoires", variant: "destructive" });
       return;
     }
@@ -44,7 +45,8 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
       name: formData.name,
       description: formData.description,
       address: formData.address,
-      start_date: format(formData.date!, "yyyy-MM-dd"),
+      start_date: format(formData.start_date!, "yyyy-MM-dd"),
+      end_date: formData.end_date ? format(formData.end_date, "yyyy-MM-dd") : null,
       client_id: formData.client_id,
       besoins_encadrants: formData.besoins_encadrants,
       besoins_salaries: formData.besoins_salaries,
@@ -103,31 +105,61 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Date *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formData.date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.date ? format(formData.date, "PPP") : "Sélectionner une date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={formData.date}
-                  onSelect={(date) => setFormData({...formData, date})}
-                  initialFocus
-                  className="p-3 pointer-events-auto"
-                />
-              </PopoverContent>
-            </Popover>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Date de début *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.start_date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.start_date ? format(formData.start_date, "dd/MM/yyyy") : "Date début"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.start_date}
+                    onSelect={(date) => setFormData({...formData, start_date: date})}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Date de fin (optionnelle)</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.end_date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.end_date ? format(formData.end_date, "dd/MM/yyyy") : "Date fin"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.end_date}
+                    onSelect={(date) => setFormData({...formData, end_date: date})}
+                    disabled={(date) => formData.start_date ? date < formData.start_date : false}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
