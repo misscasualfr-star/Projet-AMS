@@ -11,8 +11,8 @@ import { useChantiers } from "@/hooks/useChantiers";
 import { useEncadrants, useDisponibilites } from "@/hooks/useEncadrants";
 import { useSalaries } from "@/hooks/useSalaries";
 import { useClients } from "@/hooks/useClients";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { useSortable } from '@dnd-kit/sortable';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, useDroppable } from '@dnd-kit/core';
+import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
 interface DraggableItemProps {
@@ -27,18 +27,38 @@ function DraggableItem({ id, children, className }: DraggableItemProps) {
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
-  } = useSortable({ id });
+  } = useDraggable({ id });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
     opacity: isDragging ? 0.5 : 1,
   };
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={className}>
+      {children}
+    </div>
+  );
+}
+
+interface DroppableProps {
+  id: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+function DroppableArea({ id, children, className }: DroppableProps) {
+  const { isOver, setNodeRef } = useDroppable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        className,
+        isOver ? "ring-2 ring-primary ring-opacity-50 bg-primary/5" : ""
+      )}
+    >
       {children}
     </div>
   );
@@ -311,15 +331,19 @@ export function AffectationQuotidienne() {
                   const salariesAffectes = getSalariesPourChantier(chantier.id);
                   
                   return (
-                    <Card 
+                    <DroppableArea
                       key={chantier.id}
-                      className={cn(
-                        "cursor-pointer transition-smooth hover:shadow-elevated border-l-4 relative",
-                        selectedChantier === chantier.id ? "ring-2 ring-primary" : ""
-                      )}
-                      onClick={() => setSelectedChantier(chantier.id)}
-                      style={{ borderLeftColor: getClientColor(chantier.client_id || '') }}
+                      id={chantier.id}
+                      className="w-full"
                     >
+                      <Card 
+                        className={cn(
+                          "cursor-pointer transition-smooth hover:shadow-elevated border-l-4 relative",
+                          selectedChantier === chantier.id ? "ring-2 ring-primary" : ""
+                        )}
+                        onClick={() => setSelectedChantier(chantier.id)}
+                        style={{ borderLeftColor: getClientColor(chantier.client_id || '') }}
+                      >
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <div>
@@ -341,14 +365,16 @@ export function AffectationQuotidienne() {
                         {/* Encadrant affecté */}
                         {encadrant && (
                           <div className="pt-2 border-t border-border">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Avatar className="w-6 h-6" style={{ backgroundColor: encadrant.couleur }}>
-                                <AvatarFallback className="text-white font-semibold text-xs">
-                                  {encadrant.initiales}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm font-medium">{encadrant.nom}</span>
-                            </div>
+                            <DroppableArea id={encadrant.id} className="w-full">
+                              <div className="flex items-center space-x-2 mb-2 p-2 rounded transition-smooth hover:bg-muted/50">
+                                <Avatar className="w-6 h-6" style={{ backgroundColor: encadrant.couleur }}>
+                                  <AvatarFallback className="text-white font-semibold text-xs">
+                                    {encadrant.initiales}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm font-medium">{encadrant.nom}</span>
+                              </div>
+                            </DroppableArea>
                             
                             {/* Salariés affectés */}
                             {salariesAffectes.length > 0 && (
@@ -393,9 +419,8 @@ export function AffectationQuotidienne() {
                         )}
                       </CardContent>
                       
-                      {/* Drop zone overlay */}
-                      <div className="absolute inset-0 pointer-events-none" />
-                    </Card>
+                      </Card>
+                    </DroppableArea>
                   );
                 })
               )}
