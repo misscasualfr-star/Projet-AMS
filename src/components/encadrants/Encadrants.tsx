@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { EncadrantModal } from "@/components/modales/EncadrantModal";
 import { useEncadrants, useDisponibilites, useUpdateDisponibilite, useCreateEncadrant, useUpdateEncadrant } from "@/hooks/useEncadrants";
+import { useSalaries } from "@/hooks/useSalaries";
 import { useToast } from "@/hooks/use-toast";
 
 // Remove mock data - using Supabase data now
@@ -37,10 +38,16 @@ export function Encadrants() {
   
   const weekDays = generateWeekDays();
   const { data: encadrants = [], isLoading } = useEncadrants();
+  const { data: salaries = [] } = useSalaries();
   const { data: disponibilites = [] } = useDisponibilites('ENCADRANT', weekDays[0]?.date, weekDays[weekDays.length - 1]?.date);
   const updateDisponibilite = useUpdateDisponibilite();
   const createEncadrant = useCreateEncadrant();
   const updateEncadrant = useUpdateEncadrant();
+
+  // Fonction pour compter les salariés d'un encadrant
+  const getSalariesCount = (encadrantId: string) => {
+    return salaries.filter(salarie => salarie.encadrant_referent_id === encadrantId).length;
+  };
 
   const handleNewEncadrant = () => {
     setEditingEncadrant(null);
@@ -222,7 +229,7 @@ export function Encadrants() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
-                        6 salariés {/* TODO: count real salariés */}
+                        {getSalariesCount(encadrant.id)} salariés
                       </Badge>
                     </TableCell>
                     <TableCell>
