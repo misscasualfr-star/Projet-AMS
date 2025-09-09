@@ -45,6 +45,7 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
       description: formData.description,
       address: formData.lieu,
       start_date: format(formData.date!, "yyyy-MM-dd"),
+      status: 'planned',
       ...(chantier?.id && { id: chantier.id }), // Seulement inclure l'ID si on modifie un chantier existant
     };
 
