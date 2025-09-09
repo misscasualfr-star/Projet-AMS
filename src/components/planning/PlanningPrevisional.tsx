@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { ChantierModal } from "@/components/modales/ChantierModal";
 import { useToast } from "@/hooks/use-toast";
-import { useCreateChantier, useChantiers, useUpdateChantier } from "@/hooks/useChantiers";
+import { useCreateChantier, useChantiers, useUpdateChantier, useDeleteChantier } from "@/hooks/useChantiers";
 import { useClients } from "@/hooks/useClients";
 
 const generateDays = () => {
@@ -34,6 +34,7 @@ export function PlanningPrevisional() {
   const { toast } = useToast();
   const createChantier = useCreateChantier();
   const updateChantier = useUpdateChantier();
+  const deleteChantier = useDeleteChantier();
   const { data: chantiers = [] } = useChantiers();
   const { data: clients = [] } = useClients();
   
@@ -50,19 +51,7 @@ export function PlanningPrevisional() {
   };
 
   const handleDeleteChantier = async (chantierId: string) => {
-    try {
-      // TODO: Implement delete mutation
-      toast({
-        title: "Suppression",
-        description: "Chantier supprimé avec succès",
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer le chantier",
-        variant: "destructive"
-      });
-    }
+    deleteChantier.mutate(chantierId);
   };
 
   const handleSaveChantier = (chantierData: any) => {

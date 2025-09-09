@@ -117,3 +117,34 @@ export function useUpdateChantier() {
     }
   });
 }
+
+export function useDeleteChantier() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['chantiers'] });
+      toast({
+        title: "Succès",
+        description: "Chantier supprimé avec succès",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le chantier",
+        variant: "destructive"
+      });
+      console.error('Erreur suppression chantier:', error);
+    }
+  });
+}
