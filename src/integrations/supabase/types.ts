@@ -155,6 +155,9 @@ export type Database = {
       projects: {
         Row: {
           address: string
+          besoins_encadrants: number | null
+          besoins_salaries: number | null
+          client_id: string | null
           created_at: string
           description: string | null
           end_date: string | null
@@ -163,10 +166,14 @@ export type Database = {
           name: string
           start_date: string
           status: string | null
+          type: string | null
           updated_at: string
         }
         Insert: {
           address: string
+          besoins_encadrants?: number | null
+          besoins_salaries?: number | null
+          client_id?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
@@ -175,10 +182,14 @@ export type Database = {
           name: string
           start_date: string
           status?: string | null
+          type?: string | null
           updated_at?: string
         }
         Update: {
           address?: string
+          besoins_encadrants?: number | null
+          besoins_salaries?: number | null
+          client_id?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
@@ -187,9 +198,17 @@ export type Database = {
           name?: string
           start_date?: string
           status?: string | null
+          type?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_manager_id_fkey"
             columns: ["manager_id"]

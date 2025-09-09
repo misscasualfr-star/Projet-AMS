@@ -25,27 +25,31 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
   const { data: clients = [] } = useClients();
   const [formData, setFormData] = useState({
     client_id: chantier?.client_id || "",
-    nom: chantier?.nom || "",
+    name: chantier?.name || "",
     description: chantier?.description || "",
-    lieu: chantier?.lieu || "",
-    date: chantier?.date ? new Date(chantier.date) : undefined,
+    address: chantier?.address || "",
+    date: chantier?.start_date ? new Date(chantier.start_date) : undefined,
     besoins_encadrants: chantier?.besoins_encadrants || 1,
     besoins_salaries: chantier?.besoins_salaries || 6,
     type: chantier?.type || "INTERVENTION",
   });
 
   const handleSave = () => {
-    if (!formData.nom || !formData.lieu || !formData.date) {
+    if (!formData.name || !formData.address || !formData.date || !formData.client_id) {
       toast({ title: "Erreur", description: "Veuillez remplir tous les champs obligatoires", variant: "destructive" });
       return;
     }
 
     const chantierData = {
-      name: formData.nom,
+      name: formData.name,
       description: formData.description,
-      address: formData.lieu,
+      address: formData.address,
       start_date: format(formData.date!, "yyyy-MM-dd"),
-      status: 'planned',
+      client_id: formData.client_id,
+      besoins_encadrants: formData.besoins_encadrants,
+      besoins_salaries: formData.besoins_salaries,
+      type: formData.type,
+      status: chantier?.status || 'planned',
       ...(chantier?.id && { id: chantier.id }),
     };
 
@@ -83,8 +87,8 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
             <Label htmlFor="nom">Nom du chantier *</Label>
             <Input
               id="nom"
-              value={formData.nom}
-              onChange={(e) => setFormData({...formData, nom: e.target.value})}
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
               placeholder="Entretien espaces verts"
             />
           </div>
@@ -93,8 +97,8 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
             <Label htmlFor="lieu">Lieu *</Label>
             <Input
               id="lieu"
-              value={formData.lieu}
-              onChange={(e) => setFormData({...formData, lieu: e.target.value})}
+              value={formData.address}
+              onChange={(e) => setFormData({...formData, address: e.target.value})}
               placeholder="Zone Nord"
             />
           </div>

@@ -11,7 +11,6 @@ export interface Chantier {
   end_date?: string;
   status: string;
   manager_id?: string;
-  // Champs additionnels pour correspondre aux besoins
   client_id?: string;
   besoins_encadrants?: number;
   besoins_salaries?: number;
@@ -45,6 +44,10 @@ export function useCreateChantier() {
       start_date: string;
       end_date?: string;
       status?: string;
+      client_id?: string;
+      besoins_encadrants?: number;
+      besoins_salaries?: number;
+      type?: string;
     }) => {
       const { data, error } = await supabase
         .from('projects')
@@ -89,6 +92,10 @@ export function useUpdateChantier() {
       start_date: string;
       end_date?: string;
       status?: string;
+      client_id?: string;
+      besoins_encadrants?: number;
+      besoins_salaries?: number;
+      type?: string;
     }) => {
       const { data, error } = await supabase
         .from('projects')
