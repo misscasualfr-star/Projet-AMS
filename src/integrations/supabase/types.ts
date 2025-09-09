@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      disponibilites: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          personne_id: string
+          personne_type: string
+          statut: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          personne_id: string
+          personne_type: string
+          statut?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          personne_id?: string
+          personne_type?: string
+          statut?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      encadrants: {
+        Row: {
+          actif: boolean | null
+          couleur: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          initiales: string | null
+          nom: string
+          telephone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actif?: boolean | null
+          couleur?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          initiales?: string | null
+          nom: string
+          telephone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actif?: boolean | null
+          couleur?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          initiales?: string | null
+          nom?: string
+          telephone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -91,6 +157,59 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      salaries: {
+        Row: {
+          actif: boolean | null
+          conducteur: boolean | null
+          contrat_debut: string | null
+          contrat_fin: string | null
+          created_at: string | null
+          email: string | null
+          encadrant_referent_id: string | null
+          id: string
+          niveau_autonomie: string | null
+          nom: string
+          telephone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actif?: boolean | null
+          conducteur?: boolean | null
+          contrat_debut?: string | null
+          contrat_fin?: string | null
+          created_at?: string | null
+          email?: string | null
+          encadrant_referent_id?: string | null
+          id?: string
+          niveau_autonomie?: string | null
+          nom: string
+          telephone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actif?: boolean | null
+          conducteur?: boolean | null
+          contrat_debut?: string | null
+          contrat_fin?: string | null
+          created_at?: string | null
+          email?: string | null
+          encadrant_referent_id?: string | null
+          id?: string
+          niveau_autonomie?: string | null
+          nom?: string
+          telephone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salaries_encadrant_referent_id_fkey"
+            columns: ["encadrant_referent_id"]
+            isOneToOne: false
+            referencedRelation: "encadrants"
+            referencedColumns: ["id"]
           },
         ]
       }

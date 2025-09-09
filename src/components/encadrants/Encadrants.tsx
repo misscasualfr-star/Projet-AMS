@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserCheck, Phone, Mail, Calendar, Plus, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,51 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { EncadrantModal } from "@/components/modales/EncadrantModal";
+import { useEncadrants, useDisponibilites, useUpdateDisponibilite } from "@/hooks/useEncadrants";
 import { useToast } from "@/hooks/use-toast";
 
-// Mock data for demonstration
-const encadrants = [
-  {
-    id: 1,
-    nom: "Jean Dupont",
-    initiales: "JD",
-    telephone: "06 12 34 56 78",
-    email: "j.dupont@ams.fr",
-    couleur: "bg-primary",
-    actif: true,
-    salaries_referent: 6
-  },
-  {
-    id: 2,
-    nom: "Marie Martin",
-    initiales: "MM",
-    telephone: "06 23 45 67 89",
-    email: "m.martin@ams.fr",
-    couleur: "bg-accent",
-    actif: true,
-    salaries_referent: 7
-  },
-  {
-    id: 3,
-    nom: "Pierre Durand",
-    initiales: "PD",
-    telephone: "06 34 56 78 90",
-    email: "p.durand@ams.fr",
-    couleur: "bg-available",
-    actif: true,
-    salaries_referent: 8
-  },
-  {
-    id: 4,
-    nom: "Sophie Lambert",
-    initiales: "SL",
-    telephone: "06 45 67 89 01",
-    email: "s.lambert@ams.fr",
-    couleur: "bg-formation",
-    actif: false,
-    salaries_referent: 5
-  }
-];
+// Remove mock data - using Supabase data now
 
 const generateWeekDays = () => {
   const days = [];
@@ -74,10 +33,12 @@ export function Encadrants() {
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [showEncadrantModal, setShowEncadrantModal] = useState(false);
   const [editingEncadrant, setEditingEncadrant] = useState<any>(null);
-  const [availability, setAvailability] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
   
   const weekDays = generateWeekDays();
+  const { data: encadrants = [], isLoading } = useEncadrants();
+  const { data: disponibilites = [] } = useDisponibilites('ENCADRANT', weekDays[0]?.date, weekDays[weekDays.length - 1]?.date);
+  const updateDisponibilite = useUpdateDisponibilite();
 
   const handleNewEncadrant = () => {
     setEditingEncadrant(null);
@@ -101,38 +62,39 @@ export function Encadrants() {
     console.log("Encadrant sauvegardé:", encadrant);
   };
 
-  const handleAvailabilityClick = (encadrantId: number, date: string) => {
-    const key = `${encadrantId}-${date}`;
-    const currentStatus = availability[key] || getAvailabilityStatus(encadrantId, date);
-    const statusCycle = ['available', 'absent', 'suivi', 'formation'];
+  const handleAvailabilityClick = (encadrantId: string, date: string) => {
+    const currentStatus = getAvailabilityStatus(encadrantId, date);
+    const statusCycle: ('available' | 'absent' | 'suivi' | 'formation')[] = ['available', 'absent', 'suivi', 'formation'];
     const currentIndex = statusCycle.indexOf(currentStatus);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
     
-    // Mettre à jour le state local
-    setAvailability(prev => ({
-      ...prev,
-      [key]: nextStatus
-    }));
-    
-    toast({ 
-      title: "Disponibilité mise à jour", 
-      description: `${nextStatus === 'available' ? 'Disponible' : nextStatus} le ${new Date(date).toLocaleDateString('fr-FR')}` 
+    updateDisponibilite.mutate({
+      personneType: 'ENCADRANT',
+      personneId: encadrantId,
+      date,
+      statut: nextStatus
     });
   };
   
   // Mock availability data
-  const getAvailabilityStatus = (encadrantId: number, date: string) => {
-    // Simulate some availability patterns
+  const getAvailabilityStatus = (encadrantId: string, date: string): 'available' | 'absent' | 'suivi' | 'formation' => {
+    // Chercher dans les données de la base d'abord
+    const savedDisponibilite = disponibilites.find(d => 
+      d.personne_id === encadrantId && d.date === date
+    );
+    
+    if (savedDisponibilite) {
+      return savedDisponibilite.statut;
+    }
+    
+    // Fallback sur le pattern par défaut si pas de données sauvegardées
     const day = new Date(date).getDay();
     const isWeekend = day === 0 || day === 6;
     
-    if (isWeekend) return 'weekend';
+    if (isWeekend) return 'absent';
     
-    // Random pattern for demo
-    const random = (encadrantId * date.length) % 10;
-    if (random < 7) return 'available';
-    if (random < 8) return 'absent';
-    return 'suivi';
+    // Pattern par défaut: la plupart disponibles
+    return 'available';
   };
 
   const getStatusColor = (status: string) => {
@@ -145,8 +107,6 @@ export function Encadrants() {
         return 'bg-suivi';
       case 'formation':
         return 'bg-formation';
-      case 'weekend':
-        return 'bg-muted';
       default:
         return 'bg-autre';
     }
@@ -162,12 +122,22 @@ export function Encadrants() {
         return 'Suivi';
       case 'formation':
         return 'Formation';
-      case 'weekend':
-        return 'Week-end';
       default:
         return 'Autre';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <Card className="shadow-card">
+          <CardContent className="p-6">
+            <div className="text-center">Chargement des encadrants...</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -218,7 +188,7 @@ export function Encadrants() {
                   <TableRow key={encadrant.id}>
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <Avatar className={cn("w-8 h-8", encadrant.couleur)}>
+                        <Avatar className={cn("w-8 h-8")} style={{ backgroundColor: encadrant.couleur }}>
                           <AvatarFallback className="text-white font-semibold text-xs">
                             {encadrant.initiales}
                           </AvatarFallback>
@@ -240,7 +210,7 @@ export function Encadrants() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
-                        {encadrant.salaries_referent} salariés
+                        6 salariés {/* TODO: count real salariés */}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -299,7 +269,7 @@ export function Encadrants() {
                   <div key={encadrant.id} className="grid grid-cols-8 border-t border-border">
                     <div className="p-3 border-r border-border">
                       <div className="flex items-center space-x-2">
-                        <Avatar className={cn("w-6 h-6", encadrant.couleur)}>
+                        <Avatar className={cn("w-6 h-6")} style={{ backgroundColor: encadrant.couleur }}>
                           <AvatarFallback className="text-white font-semibold text-xs">
                             {encadrant.initiales}
                           </AvatarFallback>
@@ -308,8 +278,7 @@ export function Encadrants() {
                       </div>
                     </div>
                     {weekDays.map(day => {
-                      const key = `${encadrant.id}-${day.date}`;
-                      const status = availability[key] || getAvailabilityStatus(encadrant.id, day.date);
+                      const status = getAvailabilityStatus(encadrant.id, day.date);
                       return (
                         <div
                           key={`${encadrant.id}-${day.date}`}

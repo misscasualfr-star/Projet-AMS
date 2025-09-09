@@ -8,83 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { SalarieModal } from "@/components/modales/SalarieModal";
+import { useSalaries } from "@/hooks/useSalaries";
+import { useEncadrants, useDisponibilites, useUpdateDisponibilite } from "@/hooks/useEncadrants";
 import { useToast } from "@/hooks/use-toast";
 
-// Mock data for demonstration
-const salaries = [
-  {
-    id: 1,
-    nom: "Alexandre Dubois",
-    telephone: "06 11 22 33 44",
-    email: "a.dubois@ams.fr",
-    conducteur: true,
-    actif: true,
-    encadrant_referent_id: 1,
-    encadrant_referent: "Jean Dupont",
-    contrat_debut: "2024-01-15",
-    contrat_fin: "2025-12-31",
-    niveau_autonomie: "Confirmé"
-  },
-  {
-    id: 2,
-    nom: "Fatima Benali",
-    telephone: "06 22 33 44 55",
-    email: "f.benali@ams.fr",
-    conducteur: false,
-    actif: true,
-    encadrant_referent_id: 1,
-    encadrant_referent: "Jean Dupont",
-    contrat_debut: "2024-03-01",
-    contrat_fin: "2025-08-31",
-    niveau_autonomie: "Débutant"
-  },
-  {
-    id: 3,
-    nom: "Mohamed Karimi",
-    telephone: "06 33 44 55 66",
-    email: "m.karimi@ams.fr",
-    conducteur: true,
-    actif: true,
-    encadrant_referent_id: 2,
-    encadrant_referent: "Marie Martin",
-    contrat_debut: "2023-09-01",
-    contrat_fin: "2025-03-31",
-    niveau_autonomie: "Confirmé"
-  },
-  {
-    id: 4,
-    nom: "Sarah Moreau",
-    telephone: "06 44 55 66 77",
-    email: "s.moreau@ams.fr",
-    conducteur: false,
-    actif: true,
-    encadrant_referent_id: 2,
-    encadrant_referent: "Marie Martin",
-    contrat_debut: "2024-06-15",
-    contrat_fin: "2026-01-15",
-    niveau_autonomie: "Intermédiaire"
-  },
-  {
-    id: 5,
-    nom: "David Rousseau",
-    telephone: "06 55 66 77 88",
-    email: "d.rousseau@ams.fr",
-    conducteur: true,
-    actif: false,
-    encadrant_referent_id: 3,
-    encadrant_referent: "Pierre Durand",
-    contrat_debut: "2023-01-01",
-    contrat_fin: "2024-12-31",
-    niveau_autonomie: "Confirmé"
-  }
-];
-
-const encadrants = [
-  { id: 1, nom: "Jean Dupont" },
-  { id: 2, nom: "Marie Martin" },
-  { id: 3, nom: "Pierre Durand" },
-  { id: 4, nom: "Sophie Lambert" }
-];
+// Remove mock salaries data - using Supabase data now
 
 const generateWeekDays = () => {
   const days = [];
@@ -108,10 +36,13 @@ export function Salaries() {
   const [showSalarieModal, setShowSalarieModal] = useState(false);
   const [editingSalarie, setEditingSalarie] = useState<any>(null);
   const [view, setView] = useState<'list' | 'disponibilites'>('list');
-  const [availability, setAvailability] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
   
   const weekDays = generateWeekDays();
+  const { data: salaries = [], isLoading } = useSalaries();
+  const { data: encadrants = [] } = useEncadrants();
+  const { data: disponibilites = [] } = useDisponibilites('SALARIE', weekDays[0]?.date, weekDays[weekDays.length - 1]?.date);
+  const updateDisponibilite = useUpdateDisponibilite();
 
   const handleNewSalarie = () => {
     setEditingSalarie(null);
@@ -135,37 +66,39 @@ export function Salaries() {
     console.log("Salarié sauvegardé:", salarie);
   };
 
-  const handleAvailabilityClick = (salarieId: number, date: string) => {
-    const key = `${salarieId}-${date}`;
-    const currentStatus = availability[key] || getAvailabilityStatus(salarieId, date);
-    const statusCycle = ['available', 'absent', 'suivi', 'formation'];
+  const handleAvailabilityClick = (salarieId: string, date: string) => {
+    const currentStatus = getAvailabilityStatus(salarieId, date);
+    const statusCycle: ('available' | 'absent' | 'suivi' | 'formation')[] = ['available', 'absent', 'suivi', 'formation'];
     const currentIndex = statusCycle.indexOf(currentStatus);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
     
-    // Mettre à jour le state local
-    setAvailability(prev => ({
-      ...prev,
-      [key]: nextStatus
-    }));
-    
-    toast({ 
-      title: "Disponibilité mise à jour", 
-      description: `${nextStatus === 'available' ? 'Disponible' : nextStatus} le ${new Date(date).toLocaleDateString('fr-FR')}` 
+    updateDisponibilite.mutate({
+      personneType: 'SALARIE',
+      personneId: salarieId,
+      date,
+      statut: nextStatus
     });
   };
   
-  // Mock availability data
-  const getAvailabilityStatus = (salarieId: number, date: string) => {
+  // Get availability status from database or default pattern
+  const getAvailabilityStatus = (salarieId: string, date: string): 'available' | 'absent' | 'suivi' | 'formation' => {
+    // Chercher dans les données de la base d'abord
+    const savedDisponibilite = disponibilites.find(d => 
+      d.personne_id === salarieId && d.date === date
+    );
+    
+    if (savedDisponibilite) {
+      return savedDisponibilite.statut;
+    }
+    
+    // Fallback sur le pattern par défaut si pas de données sauvegardées
     const day = new Date(date).getDay();
     const isWeekend = day === 0 || day === 6;
     
-    if (isWeekend) return 'weekend';
+    if (isWeekend) return 'absent';
     
-    // Random pattern for demo
-    const random = (salarieId * date.length) % 10;
-    if (random < 6) return 'available';
-    if (random < 8) return 'absent';
-    return 'suivi';
+    // Pattern par défaut: la plupart disponibles
+    return 'available';
   };
 
   const getStatusColor = (status: string) => {
@@ -178,8 +111,6 @@ export function Salaries() {
         return 'bg-suivi';
       case 'formation':
         return 'bg-formation';
-      case 'weekend':
-        return 'bg-muted';
       default:
         return 'bg-autre';
     }
@@ -195,15 +126,13 @@ export function Salaries() {
         return 'Suivi';
       case 'formation':
         return 'Formation';
-      case 'weekend':
-        return 'Week-end';
       default:
         return 'Autre';
     }
   };
 
   const filteredSalaries = salaries.filter(salarie => {
-    const encadrantMatch = selectedEncadrant === "all" || salarie.encadrant_referent_id.toString() === selectedEncadrant;
+    const encadrantMatch = selectedEncadrant === "all" || salarie.encadrant_referent_id === selectedEncadrant;
     const statutMatch = selectedStatut === "all" || 
       (selectedStatut === "actif" && salarie.actif) || 
       (selectedStatut === "inactif" && !salarie.actif);
@@ -243,6 +172,18 @@ export function Salaries() {
         return "bg-muted text-muted-foreground";
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <Card className="shadow-card">
+          <CardContent className="p-6">
+            <div className="text-center">Chargement des salariés...</div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -293,7 +234,7 @@ export function Salaries() {
                   <SelectContent>
                     <SelectItem value="all">Tous les encadrants</SelectItem>
                     {encadrants.map(encadrant => (
-                      <SelectItem key={encadrant.id} value={encadrant.id.toString()}>
+                      <SelectItem key={encadrant.id} value={encadrant.id}>
                         {encadrant.nom}
                       </SelectItem>
                     ))}
@@ -366,7 +307,7 @@ export function Salaries() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm font-medium">{salarie.encadrant_referent}</span>
+                          <span className="text-sm font-medium">{salarie.encadrants?.nom}</span>
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
@@ -452,13 +393,12 @@ export function Salaries() {
                         </Avatar>
                         <div>
                           <div className="text-sm font-medium">{salarie.nom}</div>
-                          <div className="text-xs text-muted-foreground">{salarie.encadrant_referent}</div>
+                          <div className="text-xs text-muted-foreground">{salarie.encadrants?.nom}</div>
                         </div>
                       </div>
                     </div>
                     {weekDays.map(day => {
-                      const key = `${salarie.id}-${day.date}`;
-                      const status = availability[key] || getAvailabilityStatus(salarie.id, day.date);
+                      const status = getAvailabilityStatus(salarie.id, day.date);
                       return (
                         <div
                           key={`${salarie.id}-${day.date}`}
