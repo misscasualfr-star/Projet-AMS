@@ -511,10 +511,59 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      salaries_public: {
+        Row: {
+          actif: boolean | null
+          conducteur: boolean | null
+          contrat_debut: string | null
+          contrat_fin: string | null
+          created_at: string | null
+          encadrant_referent_id: string | null
+          id: string | null
+          niveau_autonomie: string | null
+          nom: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actif?: boolean | null
+          conducteur?: boolean | null
+          contrat_debut?: string | null
+          contrat_fin?: string | null
+          created_at?: string | null
+          encadrant_referent_id?: string | null
+          id?: string | null
+          niveau_autonomie?: string | null
+          nom?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actif?: boolean | null
+          conducteur?: boolean | null
+          contrat_debut?: string | null
+          contrat_fin?: string | null
+          created_at?: string | null
+          encadrant_referent_id?: string | null
+          id?: string | null
+          niveau_autonomie?: string | null
+          nom?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salaries_encadrant_referent_id_fkey"
+            columns: ["encadrant_referent_id"]
+            isOneToOne: false
+            referencedRelation: "encadrants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
