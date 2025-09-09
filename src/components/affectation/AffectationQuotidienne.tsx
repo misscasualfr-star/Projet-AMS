@@ -142,6 +142,8 @@ export function AffectationQuotidienne() {
     const draggedId = active.id as string;
     const targetId = over.id as string;
 
+    console.log('Drag end:', { draggedId, targetId });
+
     // Check if dragging an encadrant to a chantier
     if (encadrantsDisponibles.find(e => e.id === draggedId) && chantiersJour.find(c => c.id === targetId)) {
       setAffectations(prev => ({
@@ -157,10 +159,37 @@ export function AffectationQuotidienne() {
         title: "Encadrant affecté",
         description: "L'encadrant a été affecté au chantier"
       });
+      return;
+    }
+    
+    // Check if dragging a salarié to a chantier directly
+    if (salariesDisponibles.find(s => s.id === draggedId) && chantiersJour.find(c => c.id === targetId)) {
+      // Check if chantier has an encadrant
+      const chantierAffectation = affectations[targetId];
+      if (chantierAffectation?.encadrant) {
+        setAffectations(prev => ({
+          ...prev,
+          [targetId]: {
+            ...prev[targetId],
+            salaries: [...(prev[targetId]?.salaries || []), draggedId]
+          }
+        }));
+        
+        toast({
+          title: "Salarié affecté",
+          description: "Le salarié a été affecté au chantier"
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Vous devez d'abord affecter un encadrant au chantier"
+        });
+      }
+      return;
     }
     
     // Check if dragging a salarié to an encadrant
-    else if (salariesDisponibles.find(s => s.id === draggedId) && encadrantsDisponibles.find(e => e.id === targetId)) {
+    if (salariesDisponibles.find(s => s.id === draggedId) && encadrantsDisponibles.find(e => e.id === targetId)) {
       // Find which chantier this encadrant is assigned to
       const chantierWithEncadrant = Object.entries(affectations).find(([_, aff]) => aff.encadrant === targetId);
       
@@ -177,6 +206,11 @@ export function AffectationQuotidienne() {
         toast({
           title: "Salarié affecté",
           description: "Le salarié a été affecté à l'équipe"
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Cet encadrant n'est pas encore affecté à un chantier"
         });
       }
     }
