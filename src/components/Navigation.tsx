@@ -3,6 +3,8 @@ import { Calendar, Users, UserCheck, LayoutDashboard, FileText, CalendarDays } f
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ChantierModal } from "@/components/modales/ChantierModal";
+import { useToast } from "@/hooks/use-toast";
 
 const navigationTabs = [
   {
@@ -49,6 +51,18 @@ interface NavigationProps {
 }
 
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
+  const [showChantierModal, setShowChantierModal] = useState(false);
+  const { toast } = useToast();
+
+  const handleNewChantier = () => {
+    setShowChantierModal(true);
+  };
+
+  const handleSaveChantier = (chantier: any) => {
+    console.log("Nouveau chantier créé:", chantier);
+    toast({ title: "Succès", description: "Le chantier a été créé avec succès" });
+  };
+
   return (
     <header className="bg-card border-b border-border shadow-card">
       <div className="container mx-auto px-4 py-4">
@@ -69,7 +83,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
             <Badge variant="secondary" className="px-3 py-1">
               Semaine 37 - 2025
             </Badge>
-            <Button size="sm" className="bg-gradient-primary text-primary-foreground">
+            <Button size="sm" className="bg-gradient-primary text-primary-foreground" onClick={handleNewChantier}>
               + Nouveau chantier
             </Button>
           </div>
@@ -97,6 +111,12 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
           })}
         </nav>
       </div>
+      
+      <ChantierModal 
+        open={showChantierModal} 
+        onOpenChange={setShowChantierModal}
+        onSave={handleSaveChantier}
+      />
     </header>
   );
 }

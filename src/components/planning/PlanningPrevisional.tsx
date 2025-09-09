@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Calendar, Filter, Plus, MapPin, Users, UserCheck } from "lucide-react";
+import { Filter, Plus, MapPin, Users, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { ChantierModal } from "@/components/modales/ChantierModal";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for demonstration
 const clients = [
@@ -76,8 +78,19 @@ const generateDays = () => {
 export function PlanningPrevisional() {
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [showChantierModal, setShowChantierModal] = useState(false);
+  const { toast } = useToast();
   
   const days = generateDays();
+
+  const handleNewChantier = () => {
+    setShowChantierModal(true);
+  };
+
+  const handleSaveChantier = (chantier: any) => {
+    console.log("Nouveau chantier créé:", chantier);
+    toast({ title: "Succès", description: "Le chantier a été créé avec succès" });
+  };
   
   const getClientColor = (clientId: number) => {
     const client = clients.find(c => c.id === clientId);
@@ -144,7 +157,7 @@ export function PlanningPrevisional() {
               </SelectContent>
             </Select>
 
-            <Button className="bg-gradient-primary text-primary-foreground">
+            <Button className="bg-gradient-primary text-primary-foreground" onClick={handleNewChantier}>
               <Plus className="w-4 h-4 mr-2" />
               Nouveau chantier
             </Button>
@@ -214,6 +227,7 @@ export function PlanningPrevisional() {
                   <Button
                     variant="ghost"
                     className="w-full h-12 border-2 border-dashed border-border hover:border-primary text-muted-foreground hover:text-primary"
+                    onClick={handleNewChantier}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Ajouter chantier
@@ -241,6 +255,12 @@ export function PlanningPrevisional() {
           </div>
         </CardContent>
       </Card>
+      
+      <ChantierModal 
+        open={showChantierModal} 
+        onOpenChange={setShowChantierModal}
+        onSave={handleSaveChantier}
+      />
     </div>
   );
 }

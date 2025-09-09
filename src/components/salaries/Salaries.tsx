@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { SalarieModal } from "@/components/modales/SalarieModal";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for demonstration
 const salaries = [
@@ -87,6 +89,31 @@ const encadrants = [
 export function Salaries() {
   const [selectedEncadrant, setSelectedEncadrant] = useState<string>("all");
   const [selectedStatut, setSelectedStatut] = useState<string>("all");
+  const [showSalarieModal, setShowSalarieModal] = useState(false);
+  const [editingSalarie, setEditingSalarie] = useState<any>(null);
+  const { toast } = useToast();
+
+  const handleNewSalarie = () => {
+    setEditingSalarie(null);
+    setShowSalarieModal(true);
+  };
+
+  const handleEditSalarie = (salarie: any) => {
+    setEditingSalarie(salarie);
+    setShowSalarieModal(true);
+  };
+
+  const handleDeleteSalarie = (salarie: any) => {
+    toast({ 
+      title: "Suppression", 
+      description: `${salarie.nom} a été supprimé`,
+      variant: "destructive" 
+    });
+  };
+
+  const handleSaveSalarie = (salarie: any) => {
+    console.log("Salarié sauvegardé:", salarie);
+  };
 
   const filteredSalaries = salaries.filter(salarie => {
     const encadrantMatch = selectedEncadrant === "all" || salarie.encadrant_referent_id.toString() === selectedEncadrant;
@@ -139,7 +166,7 @@ export function Salaries() {
               <Users className="w-5 h-5" />
               <span>Gestion des salariés en insertion</span>
             </CardTitle>
-            <Button className="bg-gradient-primary text-primary-foreground">
+            <Button className="bg-gradient-primary text-primary-foreground" onClick={handleNewSalarie}>
               <Plus className="w-4 h-4 mr-2" />
               Nouveau salarié
             </Button>
@@ -257,10 +284,10 @@ export function Salaries() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditSalarie(salarie)}>
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteSalarie(salarie)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -272,6 +299,13 @@ export function Salaries() {
           </Table>
         </CardContent>
       </Card>
+      
+      <SalarieModal 
+        open={showSalarieModal} 
+        onOpenChange={setShowSalarieModal}
+        salarie={editingSalarie}
+        onSave={handleSaveSalarie}
+      />
     </div>
   );
 }

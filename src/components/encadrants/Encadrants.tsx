@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { EncadrantModal } from "@/components/modales/EncadrantModal";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for demonstration
 const encadrants = [
@@ -70,8 +72,45 @@ const generateWeekDays = () => {
 export function Encadrants() {
   const [selectedEncadrant, setSelectedEncadrant] = useState<number | null>(null);
   const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [showEncadrantModal, setShowEncadrantModal] = useState(false);
+  const [editingEncadrant, setEditingEncadrant] = useState<any>(null);
+  const { toast } = useToast();
   
   const weekDays = generateWeekDays();
+
+  const handleNewEncadrant = () => {
+    setEditingEncadrant(null);
+    setShowEncadrantModal(true);
+  };
+
+  const handleEditEncadrant = (encadrant: any) => {
+    setEditingEncadrant(encadrant);
+    setShowEncadrantModal(true);
+  };
+
+  const handleDeleteEncadrant = (encadrant: any) => {
+    toast({ 
+      title: "Suppression", 
+      description: `${encadrant.nom} a été supprimé`,
+      variant: "destructive" 
+    });
+  };
+
+  const handleSaveEncadrant = (encadrant: any) => {
+    console.log("Encadrant sauvegardé:", encadrant);
+  };
+
+  const handleAvailabilityClick = (encadrantId: number, date: string) => {
+    const currentStatus = getAvailabilityStatus(encadrantId, date);
+    const statusCycle = ['available', 'absent', 'suivi', 'formation'];
+    const currentIndex = statusCycle.indexOf(currentStatus);
+    const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
+    
+    toast({ 
+      title: "Disponibilité mise à jour", 
+      description: `${nextStatus === 'available' ? 'Disponible' : nextStatus} le ${new Date(date).toLocaleDateString('fr-FR')}` 
+    });
+  };
   
   // Mock availability data
   const getAvailabilityStatus = (encadrantId: number, date: string) => {
@@ -147,7 +186,7 @@ export function Encadrants() {
                 <Calendar className="w-4 h-4 mr-2" />
                 Disponibilités
               </Button>
-              <Button className="bg-gradient-primary text-primary-foreground">
+              <Button className="bg-gradient-primary text-primary-foreground" onClick={handleNewEncadrant}>
                 <Plus className="w-4 h-4 mr-2" />
                 Nouvel encadrant
               </Button>
@@ -203,10 +242,10 @@ export function Encadrants() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditEncadrant(encadrant)}>
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteEncadrant(encadrant)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -267,6 +306,7 @@ export function Encadrants() {
                           key={`${encadrant.id}-${day.date}`}
                           className="p-3 border-r border-border cursor-pointer hover:bg-muted/50"
                           title={getStatusLabel(status)}
+                          onClick={() => handleAvailabilityClick(encadrant.id, day.date)}
                         >
                           <div className={cn(
                             "w-full h-8 rounded transition-smooth",
@@ -286,6 +326,13 @@ export function Encadrants() {
           )}
         </CardContent>
       </Card>
+      
+      <EncadrantModal 
+        open={showEncadrantModal} 
+        onOpenChange={setShowEncadrantModal}
+        encadrant={editingEncadrant}
+        onSave={handleSaveEncadrant}
+      />
     </div>
   );
 }

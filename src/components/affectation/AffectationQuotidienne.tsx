@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { DatePickerModal } from "@/components/modales/DatePickerModal";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for a specific day
 const selectedDate = "2025-09-16";
@@ -85,6 +87,25 @@ const salariesDisponibles = [
 
 export function AffectationQuotidienne() {
   const [selectedChantier, setSelectedChantier] = useState<number | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date(selectedDate));
+  const { toast } = useToast();
+
+  const handleDateChange = () => {
+    setShowDatePicker(true);
+  };
+
+  const handleNewDate = (date: Date) => {
+    setCurrentDate(date);
+    toast({ title: "Date mise à jour", description: `Affectation pour le ${date.toLocaleDateString('fr-FR')}` });
+  };
+
+  const handleValidateDay = () => {
+    toast({ 
+      title: "Journée validée", 
+      description: `Les affectations du ${currentDate.toLocaleDateString('fr-FR')} ont été sauvegardées`
+    });
+  };
 
   // Calculate coverage indicators
   const totalChantiers = chantiersJour.length;
@@ -128,11 +149,11 @@ export function AffectationQuotidienne() {
               </Badge>
             </CardTitle>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleDateChange}>
                 <Calendar className="w-4 h-4 mr-2" />
                 Changer de jour
               </Button>
-              <Button className="bg-gradient-primary text-primary-foreground">
+              <Button className="bg-gradient-primary text-primary-foreground" onClick={handleValidateDay}>
                 Valider la journée
               </Button>
             </div>
@@ -374,6 +395,14 @@ export function AffectationQuotidienne() {
           </div>
         </CardContent>
       </Card>
+      
+      <DatePickerModal 
+        open={showDatePicker} 
+        onOpenChange={setShowDatePicker}
+        selectedDate={currentDate}
+        onDateChange={handleNewDate}
+        title="Sélectionner le jour d'affectation"
+      />
     </div>
   );
 }
