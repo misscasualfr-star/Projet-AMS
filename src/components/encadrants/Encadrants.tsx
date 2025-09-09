@@ -68,8 +68,9 @@ export function Encadrants() {
         ...encadrant
       });
     } else {
-      // Création
-      createEncadrant.mutate(encadrant);
+      // Création - on exclut l'ID pour laisser Supabase le générer
+      const { id, ...encadrantData } = encadrant;
+      createEncadrant.mutate(encadrantData);
     }
   };
 
