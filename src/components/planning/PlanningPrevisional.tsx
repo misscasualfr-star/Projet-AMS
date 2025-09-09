@@ -1,25 +1,29 @@
 import { useState } from "react";
-import { Filter, Plus, MapPin, Users, UserCheck, Edit, Trash2 } from "lucide-react";
+import { Filter, Plus, MapPin, Users, UserCheck, Edit, Trash2, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ChantierModal } from "@/components/modales/ChantierModal";
 import { useToast } from "@/hooks/use-toast";
 import { useCreateChantier, useChantiers, useUpdateChantier, useDeleteChantier } from "@/hooks/useChantiers";
 import { useClients } from "@/hooks/useClients";
+import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
+import { fr } from "date-fns/locale";
 
-const generateDays = () => {
+const generateDays = (weekStart: Date) => {
   const days = [];
-  const startDate = new Date(2025, 8, 15); // 15 septembre 2025
+  const monday = startOfWeek(weekStart, { weekStartsOn: 1 }); // Start from Monday
   
   for (let i = 0; i < 7; i++) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
+    const date = addDays(monday, i);
     days.push({
-      date: date.toISOString().split('T')[0],
-      label: date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }),
+      date: format(date, 'yyyy-MM-dd'),
+      label: format(date, 'eee d', { locale: fr }),
+      fullDate: date,
       isWeekend: date.getDay() === 0 || date.getDay() === 6
     });
   }
@@ -31,6 +35,9 @@ export function PlanningPrevisional() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [showChantierModal, setShowChantierModal] = useState(false);
   const [editingChantier, setEditingChantier] = useState<any>(null);
+  const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
+  const [showCalendar, setShowCalendar] = useState(false);
+  
   const { toast } = useToast();
   const createChantier = useCreateChantier();
   const updateChantier = useUpdateChantier();
@@ -38,7 +45,26 @@ export function PlanningPrevisional() {
   const { data: chantiers = [] } = useChantiers();
   const { data: clients = [] } = useClients();
   
-  const days = generateDays();
+  const days = generateDays(currentWeek);
+
+  const handlePreviousWeek = () => {
+    setCurrentWeek(prev => subWeeks(prev, 1));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeek(prev => addWeeks(prev, 1));
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setCurrentWeek(date);
+      setShowCalendar(false);
+    }
+  };
+
+  const handleToday = () => {
+    setCurrentWeek(new Date());
+  };
 
   const handleNewChantier = () => {
     setEditingChantier(null);
@@ -93,6 +119,55 @@ export function PlanningPrevisional() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Week Navigation */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-2">
+              <CalendarIcon className="w-5 h-5" />
+              <span>Planning prévisionnel</span>
+            </CardTitle>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={handleToday}>
+                Aujourd'hui
+              </Button>
+              <div className="flex items-center space-x-1">
+                <Button variant="outline" size="sm" onClick={handlePreviousWeek}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Popover open={showCalendar} onOpenChange={setShowCalendar}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="min-w-[200px]">
+                      <CalendarIcon className="w-4 h-4 mr-2" />
+                      {format(currentWeek, "dd MMMM yyyy", { locale: fr })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={currentWeek}
+                      onSelect={handleDateSelect}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button variant="outline" size="sm" onClick={handleNextWeek}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center">
+            <h3 className="text-lg font-semibold">
+              Semaine du {format(startOfWeek(currentWeek, { weekStartsOn: 1 }), "dd", { locale: fr })} au {format(addDays(startOfWeek(currentWeek, { weekStartsOn: 1 }), 6), "dd MMMM yyyy", { locale: fr })}
+            </h3>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Filters */}
       <Card className="shadow-card">
         <CardHeader>
