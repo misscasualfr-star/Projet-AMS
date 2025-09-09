@@ -74,6 +74,7 @@ export function Encadrants() {
   const [view, setView] = useState<'list' | 'calendar'>('list');
   const [showEncadrantModal, setShowEncadrantModal] = useState(false);
   const [editingEncadrant, setEditingEncadrant] = useState<any>(null);
+  const [availability, setAvailability] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
   
   const weekDays = generateWeekDays();
@@ -101,10 +102,17 @@ export function Encadrants() {
   };
 
   const handleAvailabilityClick = (encadrantId: number, date: string) => {
-    const currentStatus = getAvailabilityStatus(encadrantId, date);
+    const key = `${encadrantId}-${date}`;
+    const currentStatus = availability[key] || getAvailabilityStatus(encadrantId, date);
     const statusCycle = ['available', 'absent', 'suivi', 'formation'];
     const currentIndex = statusCycle.indexOf(currentStatus);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
+    
+    // Mettre à jour le state local
+    setAvailability(prev => ({
+      ...prev,
+      [key]: nextStatus
+    }));
     
     toast({ 
       title: "Disponibilité mise à jour", 
@@ -300,7 +308,8 @@ export function Encadrants() {
                       </div>
                     </div>
                     {weekDays.map(day => {
-                      const status = getAvailabilityStatus(encadrant.id, day.date);
+                      const key = `${encadrant.id}-${day.date}`;
+                      const status = availability[key] || getAvailabilityStatus(encadrant.id, day.date);
                       return (
                         <div
                           key={`${encadrant.id}-${day.date}`}

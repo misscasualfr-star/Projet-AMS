@@ -108,6 +108,7 @@ export function Salaries() {
   const [showSalarieModal, setShowSalarieModal] = useState(false);
   const [editingSalarie, setEditingSalarie] = useState<any>(null);
   const [view, setView] = useState<'list' | 'disponibilites'>('list');
+  const [availability, setAvailability] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
   
   const weekDays = generateWeekDays();
@@ -135,10 +136,17 @@ export function Salaries() {
   };
 
   const handleAvailabilityClick = (salarieId: number, date: string) => {
-    const currentStatus = getAvailabilityStatus(salarieId, date);
+    const key = `${salarieId}-${date}`;
+    const currentStatus = availability[key] || getAvailabilityStatus(salarieId, date);
     const statusCycle = ['available', 'absent', 'suivi', 'formation'];
     const currentIndex = statusCycle.indexOf(currentStatus);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
+    
+    // Mettre à jour le state local
+    setAvailability(prev => ({
+      ...prev,
+      [key]: nextStatus
+    }));
     
     toast({ 
       title: "Disponibilité mise à jour", 
@@ -449,7 +457,8 @@ export function Salaries() {
                       </div>
                     </div>
                     {weekDays.map(day => {
-                      const status = getAvailabilityStatus(salarie.id, day.date);
+                      const key = `${salarie.id}-${day.date}`;
+                      const status = availability[key] || getAvailabilityStatus(salarie.id, day.date);
                       return (
                         <div
                           key={`${salarie.id}-${day.date}`}
