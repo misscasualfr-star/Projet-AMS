@@ -11,6 +11,7 @@ import { useChantiers } from "@/hooks/useChantiers";
 import { useEncadrants, useDisponibilites } from "@/hooks/useEncadrants";
 import { useSalaries } from "@/hooks/useSalaries";
 import { useClients } from "@/hooks/useClients";
+import { useAffectations, useCreateAffectation, useDeleteAffectations } from "@/hooks/useAffectations";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, useDroppable } from '@dnd-kit/core';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -68,7 +69,6 @@ export function AffectationQuotidienne() {
   const [selectedChantier, setSelectedChantier] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [affectations, setAffectations] = useState<Record<string, { encadrant?: string; salaries: string[] }>>({});
   
   const { toast } = useToast();
   
@@ -81,9 +81,33 @@ export function AffectationQuotidienne() {
   // Format date for API calls
   const dateString = currentDate.toISOString().split('T')[0];
   
-  // Get disponibilités for current date
+  // Get disponibilités and affectations for current date
   const { data: disponibilitesEncadrants = [] } = useDisponibilites('ENCADRANT', dateString, dateString);
   const { data: disponibilitesSalaries = [] } = useDisponibilites('SALARIE', dateString, dateString);
+  const { data: affectations = [] } = useAffectations(dateString);
+  
+  // Mutations
+  const createAffectation = useCreateAffectation();
+  const deleteAffectations = useDeleteAffectations();
+
+  // Transform affectations data into usable format
+  const affectationsData = useMemo(() => {
+    const result: Record<string, { encadrant?: string; salaries: string[] }> = {};
+    
+    affectations.forEach(aff => {
+      if (!result[aff.project_id]) {
+        result[aff.project_id] = { salaries: [] };
+      }
+      
+      if (aff.encadrant_id && !aff.salarie_id) {
+        result[aff.project_id].encadrant = aff.encadrant_id;
+      } else if (aff.salarie_id) {
+        result[aff.project_id].salaries.push(aff.salarie_id);
+      }
+    });
+    
+    return result;
+  }, [affectations]);
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -104,18 +128,29 @@ export function AffectationQuotidienne() {
   }, [chantiers, currentDate]);
 
   const encadrantsDisponibles = useMemo(() => {
+    const encadrantsAffectes = Object.values(affectationsData)
+      .map(aff => aff.encadrant)
+      .filter(Boolean);
+    
     return encadrants.filter(encadrant => {
       const dispo = disponibilitesEncadrants.find(d => d.personne_id === encadrant.id);
-      return !dispo || dispo.statut === 'available';
+      const isAvailable = !dispo || dispo.statut === 'available';
+      const notAssigned = !encadrantsAffectes.includes(encadrant.id);
+      return isAvailable && notAssigned;
     });
-  }, [encadrants, disponibilitesEncadrants]);
+  }, [encadrants, disponibilitesEncadrants, affectationsData]);
 
   const salariesDisponibles = useMemo(() => {
+    const salariesAffectes = Object.values(affectationsData)
+      .flatMap(aff => aff.salaries);
+    
     return salaries.filter(salarie => {
       const dispo = disponibilitesSalaries.find(d => d.personne_id === salarie.id);
-      return !dispo || dispo.statut === 'available';
+      const isAvailable = !dispo || dispo.statut === 'available';
+      const notAssigned = !salariesAffectes.includes(salarie.id);
+      return isAvailable && notAssigned;
     });
-  }, [salaries, disponibilitesSalaries]);
+  }, [salaries, disponibilitesSalaries, affectationsData]);
 
   const handleDateChange = () => {
     setShowDatePicker(true);
@@ -123,7 +158,6 @@ export function AffectationQuotidienne() {
 
   const handleNewDate = (date: Date) => {
     setCurrentDate(date);
-    setAffectations({}); // Reset affectations when changing date
     toast({ title: "Date mise à jour", description: `Affectation pour le ${date.toLocaleDateString('fr-FR')}` });
   };
 
@@ -146,14 +180,12 @@ export function AffectationQuotidienne() {
 
     // Check if dragging an encadrant to a chantier
     if (encadrantsDisponibles.find(e => e.id === draggedId) && chantiersJour.find(c => c.id === targetId)) {
-      setAffectations(prev => ({
-        ...prev,
-        [targetId]: {
-          ...prev[targetId],
-          encadrant: draggedId,
-          salaries: prev[targetId]?.salaries || []
-        }
-      }));
+      // Create encadrant affectation
+      createAffectation.mutate({
+        project_id: targetId,
+        encadrant_id: draggedId,
+        date: dateString
+      });
       
       toast({
         title: "Encadrant affecté",
@@ -162,46 +194,17 @@ export function AffectationQuotidienne() {
       return;
     }
     
-    // Check if dragging a salarié to a chantier directly
-    if (salariesDisponibles.find(s => s.id === draggedId) && chantiersJour.find(c => c.id === targetId)) {
-      // Check if chantier has an encadrant
-      const chantierAffectation = affectations[targetId];
-      if (chantierAffectation?.encadrant) {
-        setAffectations(prev => ({
-          ...prev,
-          [targetId]: {
-            ...prev[targetId],
-            salaries: [...(prev[targetId]?.salaries || []), draggedId]
-          }
-        }));
-        
-        toast({
-          title: "Salarié affecté",
-          description: "Le salarié a été affecté au chantier"
-        });
-      } else {
-        toast({
-          title: "Erreur",
-          description: "Vous devez d'abord affecter un encadrant au chantier"
-        });
-      }
-      return;
-    }
-    
-    // Check if dragging a salarié to an encadrant
-    if (salariesDisponibles.find(s => s.id === draggedId) && encadrantsDisponibles.find(e => e.id === targetId)) {
+    // Check if dragging a salarié to an encadrant (in a chantier)
+    if (salariesDisponibles.find(s => s.id === draggedId) && encadrants.find(e => e.id === targetId)) {
       // Find which chantier this encadrant is assigned to
-      const chantierWithEncadrant = Object.entries(affectations).find(([_, aff]) => aff.encadrant === targetId);
+      const encadrantAffectation = affectations.find(aff => aff.encadrant_id === targetId && !aff.salarie_id);
       
-      if (chantierWithEncadrant) {
-        const [chantierId] = chantierWithEncadrant;
-        setAffectations(prev => ({
-          ...prev,
-          [chantierId]: {
-            ...prev[chantierId],
-            salaries: [...(prev[chantierId]?.salaries || []), draggedId]
-          }
-        }));
+      if (encadrantAffectation) {
+        createAffectation.mutate({
+          project_id: encadrantAffectation.project_id,
+          salarie_id: draggedId,
+          date: dateString
+        });
         
         toast({
           title: "Salarié affecté",
@@ -211,6 +214,30 @@ export function AffectationQuotidienne() {
         toast({
           title: "Erreur",
           description: "Cet encadrant n'est pas encore affecté à un chantier"
+        });
+      }
+      return;
+    }
+    
+    // Check if dragging a salarié to a chantier directly
+    if (salariesDisponibles.find(s => s.id === draggedId) && chantiersJour.find(c => c.id === targetId)) {
+      // Check if chantier has an encadrant
+      const chantierAffectation = affectationsData[targetId];
+      if (chantierAffectation?.encadrant) {
+        createAffectation.mutate({
+          project_id: targetId,
+          salarie_id: draggedId,
+          date: dateString
+        });
+        
+        toast({
+          title: "Salarié affecté",
+          description: "Le salarié a été affecté au chantier"
+        });
+      } else {
+        toast({
+          title: "Erreur",
+          description: "Vous devez d'abord affecter un encadrant au chantier"
         });
       }
     }
@@ -226,36 +253,31 @@ export function AffectationQuotidienne() {
     return client?.nom || 'Client inconnu';
   };
 
-  // Calculate coverage indicators
+  // Calculate coverage indicators  
   const totalChantiers = chantiersJour.length;
-  const chantiersAvecEncadrant = Object.keys(affectations).filter(id => affectations[id]?.encadrant).length;
+  const chantiersAvecEncadrant = Object.keys(affectationsData).filter(id => affectationsData[id]?.encadrant).length;
   
   const totalBesoinsEncadrants = chantiersJour.reduce((sum, c) => sum + (c.besoins_encadrants || 1), 0);
-  const totalEncadrantsAffectes = Object.values(affectations).filter(aff => aff.encadrant).length;
+  const totalEncadrantsAffectes = Object.values(affectationsData).filter(aff => aff.encadrant).length;
   
   const totalBesoinsSalaries = chantiersJour.reduce((sum, c) => sum + (c.besoins_salaries || 0), 0);
-  const totalSalariesAffectes = Object.values(affectations).reduce((sum, aff) => sum + aff.salaries.length, 0);
+  const totalSalariesAffectes = Object.values(affectationsData).reduce((sum, aff) => sum + aff.salaries.length, 0);
 
   const getSalariesPourChantier = (chantierId: string) => {
-    const chantierAffectation = affectations[chantierId];
+    const chantierAffectation = affectationsData[chantierId];
     if (!chantierAffectation?.salaries) return [];
     
     return chantierAffectation.salaries.map(salarieId => 
-      salariesDisponibles.find(s => s.id === salarieId)
+      salaries.find(s => s.id === salarieId)
     ).filter(Boolean);
   };
 
   const getEncadrantPourChantier = (chantierId: string) => {
-    const chantierAffectation = affectations[chantierId];
+    const chantierAffectation = affectationsData[chantierId];
     if (!chantierAffectation?.encadrant) return null;
     
-    return encadrantsDisponibles.find(e => e.id === chantierAffectation.encadrant);
+    return encadrants.find(e => e.id === chantierAffectation.encadrant);
   };
-
-  // Get salaries not yet assigned
-  const salariesNonAffectes = salariesDisponibles.filter(salarie => 
-    !Object.values(affectations).some(aff => aff.salaries.includes(salarie.id))
-  );
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -506,15 +528,15 @@ export function AffectationQuotidienne() {
           {/* Column 3: Salariés disponibles */}
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle className="text-lg">Salariés disponibles ({salariesNonAffectes.length})</CardTitle>
+              <CardTitle className="text-lg">Salariés disponibles ({salariesDisponibles.length})</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {salariesNonAffectes.length === 0 ? (
+              {salariesDisponibles.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Aucun salarié disponible</p>
                 </div>
               ) : (
-                salariesNonAffectes.map(salarie => (
+                salariesDisponibles.map(salarie => (
                   <DraggableItem 
                     key={salarie.id} 
                     id={salarie.id}

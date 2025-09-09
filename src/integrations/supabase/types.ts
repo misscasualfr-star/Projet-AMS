@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      affectations: {
+        Row: {
+          created_at: string
+          date: string
+          encadrant_id: string | null
+          id: string
+          project_id: string
+          salarie_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          encadrant_id?: string | null
+          id?: string
+          project_id: string
+          salarie_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          encadrant_id?: string | null
+          id?: string
+          project_id?: string
+          salarie_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           actif: boolean | null
