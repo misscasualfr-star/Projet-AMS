@@ -73,9 +73,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       // Modification (pas encore implémentée)
       console.log("Modification chantier:", chantier);
     } else {
-      // Création
-      const { id, ...chantierData } = chantier;
-      createChantier.mutate(chantierData);
+      // Création - on passe directement l'objet chantier sans filtrer
+      createChantier.mutate(chantier);
     }
   };
 
@@ -84,9 +83,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       // Modification (pas encore implémentée)  
       console.log("Modification client:", client);
     } else {
-      // Création
-      const { id, ...clientData } = client;
-      createClient.mutate(clientData);
+      // Création - on passe directement l'objet client sans filtrer
+      createClient.mutate(client);
     }
   };
 

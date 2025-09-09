@@ -90,8 +90,7 @@ export function PlanningPrevisional() {
   };
 
   const handleSaveChantier = (chantier: any) => {
-    const { id, ...chantierData } = chantier;
-    createChantier.mutate(chantierData);
+    createChantier.mutate(chantier);
   };
   
   const getClientColor = (clientId: number) => {
