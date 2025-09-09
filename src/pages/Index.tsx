@@ -5,6 +5,7 @@ import { PlanningHebdomadaire } from "@/components/planning/PlanningHebdomadaire
 import { Encadrants } from "@/components/encadrants/Encadrants";
 import { Salaries } from "@/components/salaries/Salaries";
 import { AffectationQuotidienne } from "@/components/affectation/AffectationQuotidienne";
+import { FeuillesRoute } from "@/components/feuilles/FeuillesRoute";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("planning");
@@ -22,12 +23,7 @@ const Index = () => {
       case "hebdomadaire":
         return <PlanningHebdomadaire />;
       case "feuilles":
-        return (
-          <div className="p-6 text-center">
-            <h2 className="text-2xl font-bold mb-4">Feuilles de route</h2>
-            <p className="text-muted-foreground">Génération des feuilles de route PDF - À venir</p>
-          </div>
-        );
+        return <FeuillesRoute />;
       default:
         return <PlanningPrevisional />;
     }
