@@ -69,11 +69,15 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   };
 
   const handleSaveChantier = (chantier: any) => {
+    console.log("=== handleSaveChantier Navigation ===");
+    console.log("chantier reçu:", chantier);
+    
     if (chantier.id) {
       // Modification (pas encore implémentée)
       console.log("Modification chantier:", chantier);
     } else {
       // Création - on passe directement l'objet chantier sans filtrer
+      console.log("Création chantier avec mutation:", chantier);
       createChantier.mutate(chantier);
     }
   };
