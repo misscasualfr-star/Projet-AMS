@@ -71,9 +71,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const handleSaveChantier = (chantier: any) => {
     if (chantier.id) {
       // Modification (pas encore implémentée)
-      console.log("Modification chantier:", chantier);
     } else {
-      // Création - on passe directement l'objet chantier sans filtrer
+      // Création
       createChantier.mutate(chantier);
     }
   };
@@ -81,9 +80,8 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const handleSaveClient = (client: any) => {
     if (client.id) {
       // Modification (pas encore implémentée)  
-      console.log("Modification client:", client);
     } else {
-      // Création - on passe directement l'objet client sans filtrer
+      // Création
       createClient.mutate(client);
     }
   };
