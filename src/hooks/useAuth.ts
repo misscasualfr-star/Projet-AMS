@@ -61,6 +61,43 @@ export const useAuth = () => {
     }
   };
 
+  const signUp = async (email: string, password: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Erreur d'inscription",
+          description: error.message
+        });
+        return { error };
+      }
+
+      toast({
+        title: "Inscription réussie",
+        description: "Compte créé avec succès"
+      });
+
+      return { error: null };
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: error.message
+      });
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -92,6 +129,7 @@ export const useAuth = () => {
     session,
     loading,
     signIn,
+    signUp,
     signOut
   };
 };
