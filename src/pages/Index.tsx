@@ -1,12 +1,48 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Navigation } from "@/components/Navigation";
+import { PlanningPrevisional } from "@/components/planning/PlanningPrevisional";
+import { Encadrants } from "@/components/encadrants/Encadrants";
+import { Salaries } from "@/components/salaries/Salaries";
+import { AffectationQuotidienne } from "@/components/affectation/AffectationQuotidienne";
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState("planning");
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "planning":
+        return <PlanningPrevisional />;
+      case "encadrants":
+        return <Encadrants />;
+      case "salaries":
+        return <Salaries />;
+      case "affectation":
+        return <AffectationQuotidienne />;
+      case "hebdomadaire":
+        return (
+          <div className="p-6 text-center">
+            <h2 className="text-2xl font-bold mb-4">Planning hebdomadaire</h2>
+            <p className="text-muted-foreground">Vue par encadrant et par semaine - À venir</p>
+          </div>
+        );
+      case "feuilles":
+        return (
+          <div className="p-6 text-center">
+            <h2 className="text-2xl font-bold mb-4">Feuilles de route</h2>
+            <p className="text-muted-foreground">Génération des feuilles de route PDF - À venir</p>
+          </div>
+        );
+      default:
+        return <PlanningPrevisional />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+      <main>
+        {renderContent()}
+      </main>
     </div>
   );
 };

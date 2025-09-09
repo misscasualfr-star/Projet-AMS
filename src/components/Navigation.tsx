@@ -1,0 +1,102 @@
+import { useState } from "react";
+import { Calendar, Users, UserCheck, LayoutDashboard, FileText, CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+const navigationTabs = [
+  {
+    id: "planning",
+    label: "Planning prévisionnel", 
+    icon: Calendar,
+    description: "Vue calendrier des chantiers"
+  },
+  {
+    id: "encadrants",
+    label: "Encadrants",
+    icon: UserCheck,
+    description: "Gestion des encadrants et disponibilités"
+  },
+  {
+    id: "salaries", 
+    label: "Salariés",
+    icon: Users,
+    description: "Gestion des salariés en insertion"
+  },
+  {
+    id: "affectation",
+    label: "Affectation quotidienne",
+    icon: LayoutDashboard,
+    description: "Affectation jour par jour avec drag & drop"
+  },
+  {
+    id: "hebdomadaire",
+    label: "Planning hebdomadaire", 
+    icon: CalendarDays,
+    description: "Vue par encadrant et par semaine"
+  },
+  {
+    id: "feuilles",
+    label: "Feuilles de route",
+    icon: FileText,
+    description: "Génération des feuilles de route PDF"
+  }
+];
+
+interface NavigationProps {
+  activeTab: string;
+  onTabChange: (tabId: string) => void;
+}
+
+export function Navigation({ activeTab, onTabChange }: NavigationProps) {
+  return (
+    <header className="bg-card border-b border-border shadow-card">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">AMS Planning</h1>
+                <p className="text-sm text-muted-foreground">Planification des équipes</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Badge variant="secondary" className="px-3 py-1">
+              Semaine 37 - 2025
+            </Badge>
+            <Button size="sm" className="bg-gradient-primary text-primary-foreground">
+              + Nouveau chantier
+            </Button>
+          </div>
+        </div>
+
+        <nav className="flex flex-wrap gap-2">
+          {navigationTabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <Button
+                key={tab.id}
+                variant={activeTab === tab.id ? "default" : "ghost"}
+                onClick={() => onTabChange(tab.id)}
+                className={cn(
+                  "flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-smooth",
+                  activeTab === tab.id
+                    ? "bg-primary text-primary-foreground shadow-card"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </Button>
+            );
+          })}
+        </nav>
+      </div>
+    </header>
+  );
+}

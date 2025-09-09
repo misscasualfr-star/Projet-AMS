@@ -22,6 +22,8 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          light: "hsl(var(--primary-light))",
+          dark: "hsl(var(--primary-dark))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -47,6 +49,21 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Status colors for availability
+        available: "hsl(var(--available))",
+        absent: "hsl(var(--absent))",
+        suivi: "hsl(var(--suivi))",
+        formation: "hsl(var(--formation))",
+        autre: "hsl(var(--autre))",
+        // Client colors
+        client: {
+          1: "hsl(var(--client-1))",
+          2: "hsl(var(--client-2))",
+          3: "hsl(var(--client-3))",
+          4: "hsl(var(--client-4))",
+          5: "hsl(var(--client-5))",
+          6: "hsl(var(--client-6))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -62,6 +79,21 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      backgroundImage: {
+        'gradient-primary': 'var(--gradient-primary)',
+        'gradient-surface': 'var(--gradient-surface)',
+        'gradient-available': 'var(--gradient-status-available)',
+        'gradient-absent': 'var(--gradient-status-absent)',
+      },
+      boxShadow: {
+        'card': 'var(--shadow-card)',
+        'elevated': 'var(--shadow-elevated)',
+        'glow': 'var(--shadow-glow)',
+      },
+      transitionTimingFunction: {
+        'smooth': 'var(--transition-smooth)',
+        'bounce': 'var(--transition-bounce)',
       },
       keyframes: {
         "accordion-down": {
