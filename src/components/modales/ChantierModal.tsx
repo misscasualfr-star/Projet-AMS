@@ -22,7 +22,7 @@ interface ChantierModalProps {
 
 export function ChantierModal({ open, onOpenChange, chantier, onSave }: ChantierModalProps) {
   const { toast } = useToast();
-  const { data: clients = [] } = useClients();
+  const { data: clients = [], error: clientsError } = useClients();
   const [formData, setFormData] = useState({
     client_id: chantier?.client_id || "",
     name: chantier?.name || "",
@@ -35,10 +35,21 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
     type: chantier?.type || "INTERVENTION",
   });
 
+  const isAccessDenied = clientsError?.message.includes('admin');
+
   const handleSave = () => {
-    if (!formData.name || !formData.address || !formData.start_date || !formData.client_id) {
+    if (!formData.name || !formData.address || !formData.start_date) {
       toast({ title: "Erreur", description: "Veuillez remplir tous les champs obligatoires", variant: "destructive" });
       return;
+    }
+
+    // Si l'accès aux clients est refusé, on peut quand même créer le chantier sans client
+    if (isAccessDenied && !formData.client_id) {
+      toast({ 
+        title: "Information", 
+        description: "Chantier créé sans client assigné (accès admin requis pour assigner un client)",
+        variant: "default"
+      });
     }
 
     const chantierData = {
@@ -47,7 +58,7 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
       address: formData.address,
       start_date: format(formData.start_date!, "yyyy-MM-dd"),
       end_date: formData.end_date ? format(formData.end_date, "yyyy-MM-dd") : null,
-      client_id: formData.client_id,
+      client_id: formData.client_id || null, // Permettre null si pas d'accès aux clients
       besoins_encadrants: formData.besoins_encadrants,
       besoins_salaries: formData.besoins_salaries,
       type: formData.type,
@@ -69,20 +80,36 @@ export function ChantierModal({ open, onOpenChange, chantier, onSave }: Chantier
         </DialogHeader>
         
         <div className="space-y-4">
+          {isAccessDenied && (
+            <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <p className="text-sm text-orange-800">
+                ⚠️ <strong>Accès restreint :</strong> Seuls les administrateurs peuvent voir la liste des clients pour des raisons de confidentialité.
+                <br />
+                <span className="text-xs">Vous pouvez créer le chantier mais ne pourrez pas sélectionner de client.</span>
+              </p>
+            </div>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="client">Client *</Label>
-            <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.nom}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isAccessDenied ? (
+              <div className="p-3 border border-muted rounded-md bg-muted/50 text-muted-foreground">
+                Liste des clients non disponible (accès admin requis)
+              </div>
+            ) : (
+              <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un client" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map(client => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.nom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <div className="space-y-2">

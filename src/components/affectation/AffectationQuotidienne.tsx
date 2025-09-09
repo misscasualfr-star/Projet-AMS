@@ -76,7 +76,7 @@ export function AffectationQuotidienne() {
   const { data: chantiers = [] } = useChantiers();
   const { data: encadrants = [] } = useEncadrants();
   const { data: salaries = [] } = useSalaries();
-  const { data: clients = [] } = useClients();
+  const { data: clients = [], error: clientsError } = useClients();
   
   // Format date for API calls
   const dateString = currentDate.toISOString().split('T')[0];
@@ -244,11 +244,19 @@ export function AffectationQuotidienne() {
   };
 
   const getClientColor = (clientId: string) => {
+    // Si l'accès aux clients est refusé, utiliser une couleur par défaut
+    if (clientsError?.message.includes('admin')) {
+      return 'hsl(var(--muted))';
+    }
     const client = clients.find(c => c.id === clientId);
     return client?.couleur || 'hsl(var(--primary))';
   };
 
   const getClientName = (clientId: string) => {
+    // Si l'accès aux clients est refusé, afficher un message générique
+    if (clientsError?.message.includes('admin')) {
+      return 'Client (accès restreint)';
+    }
     const client = clients.find(c => c.id === clientId);
     return client?.nom || 'Client inconnu';
   };

@@ -43,7 +43,7 @@ export function PlanningPrevisional() {
   const updateChantier = useUpdateChantier();
   const deleteChantier = useDeleteChantier();
   const { data: chantiers = [] } = useChantiers();
-  const { data: clients = [] } = useClients();
+  const { data: clients = [], error: clientsError } = useClients();
   
   const days = generateDays(currentWeek);
 
@@ -184,14 +184,20 @@ export function PlanningPrevisional() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les clients</SelectItem>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>
-                    <div className="flex items-center space-x-2">
-                      <div className={cn("w-3 h-3 rounded-full", `bg-${client.couleur}`)} />
-                      <span>{client.nom}</span>
-                    </div>
+                {clientsError?.message.includes('admin') ? (
+                  <SelectItem value="restricted" disabled>
+                    Accès clients restreint (admin requis)
                   </SelectItem>
-                ))}
+                ) : (
+                  clients.map(client => (
+                    <SelectItem key={client.id} value={client.id}>
+                      <div className="flex items-center space-x-2">
+                        <div className={cn("w-3 h-3 rounded-full", `bg-${client.couleur}`)} />
+                        <span>{client.nom}</span>
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
 
@@ -321,14 +327,21 @@ export function PlanningPrevisional() {
           <CardTitle className="text-lg">Légende</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {clients.map(client => (
-              <div key={client.id} className="flex items-center space-x-2">
-                <div className={cn("w-4 h-4 rounded", `bg-${client.couleur}`)} />
-                <span className="text-sm font-medium">{client.nom}</span>
-              </div>
-            ))}
-          </div>
+          {clientsError?.message.includes('admin') ? (
+            <div className="p-4 text-center text-muted-foreground">
+              <p className="text-sm">🔒 Légende des clients non disponible</p>
+              <p className="text-xs">Accès administrateur requis pour voir les informations clients</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {clients.map(client => (
+                <div key={client.id} className="flex items-center space-x-2">
+                  <div className={cn("w-4 h-4 rounded", `bg-${client.couleur}`)} />
+                  <span className="text-sm font-medium">{client.nom}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
       
