@@ -90,7 +90,7 @@ export function DisponibilitesSalaries() {
 
   const handleAvailabilityClick = (salarieId: number, date: string) => {
     const currentStatus = getAvailabilityStatus(salarieId, date);
-    const statusCycle = ['available', 'absent', 'conges', 'maladie'];
+    const statusCycle: ('available' | 'absent' | 'conges' | 'maladie')[] = ['available', 'absent', 'conges', 'maladie'];
     const currentIndex = statusCycle.indexOf(currentStatus);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
     
@@ -107,13 +107,13 @@ export function DisponibilitesSalaries() {
     });
   };
   
-  const getAvailabilityStatus = (salarieId: number, date: string) => {
+  const getAvailabilityStatus = (salarieId: number, date: string): 'available' | 'absent' | 'conges' | 'maladie' => {
     const savedDisponibilite = disponibilites.find(d => 
       d.personne_id === salarieId.toString() && d.date === date
     );
     
     if (savedDisponibilite) {
-      return savedDisponibilite.statut;
+      return savedDisponibilite.statut as 'available' | 'absent' | 'conges' | 'maladie';
     }
     
     // Par défaut: disponible (vert)

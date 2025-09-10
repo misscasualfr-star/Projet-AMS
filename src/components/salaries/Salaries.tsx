@@ -104,7 +104,7 @@ export function Salaries() {
 
   const handleAvailabilityClick = (salarieId: string, date: string) => {
     const currentStatus = getAvailabilityStatus(salarieId, date);
-    const statusCycle: ('available' | 'absent' | 'suivi' | 'formation')[] = ['available', 'absent', 'suivi', 'formation'];
+    const statusCycle: ('available' | 'absent' | 'conges' | 'maladie')[] = ['available', 'absent', 'conges', 'maladie'];
     const currentIndex = statusCycle.indexOf(currentStatus);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
     
@@ -117,14 +117,14 @@ export function Salaries() {
   };
   
   // Get availability status from database or default pattern
-  const getAvailabilityStatus = (salarieId: string, date: string): 'available' | 'absent' | 'suivi' | 'formation' => {
+  const getAvailabilityStatus = (salarieId: string, date: string): 'available' | 'absent' | 'conges' | 'maladie' => {
     // Chercher dans les données de la base d'abord
     const savedDisponibilite = disponibilites.find(d => 
       d.personne_id === salarieId && d.date === date
     );
     
     if (savedDisponibilite) {
-      return savedDisponibilite.statut;
+      return savedDisponibilite.statut as 'available' | 'absent' | 'conges' | 'maladie';
     }
     
     // Fallback sur le pattern par défaut si pas de données sauvegardées
@@ -143,10 +143,10 @@ export function Salaries() {
         return 'bg-available';
       case 'absent':
         return 'bg-absent';
-      case 'suivi':
-        return 'bg-suivi';
-      case 'formation':
-        return 'bg-formation';
+      case 'conges':
+        return 'bg-conges';
+      case 'maladie':
+        return 'bg-maladie';
       default:
         return 'bg-autre';
     }
@@ -155,13 +155,13 @@ export function Salaries() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'available':
-        return 'Disponible';
+        return 'Présent';
       case 'absent':
         return 'Absent';
-      case 'suivi':
-        return 'Suivi';
-      case 'formation':
-        return 'Formation';
+      case 'conges':
+        return 'Congés';
+      case 'maladie':
+        return 'Maladie/Accident';
       default:
         return 'Autre';
     }
@@ -201,9 +201,9 @@ export function Salaries() {
       case "Confirmé":
         return "bg-available text-white";
       case "Intermédiaire":
-        return "bg-suivi text-white";
+        return "bg-conges text-white";
       case "Débutant":
-        return "bg-formation text-white";
+        return "bg-maladie text-white";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -387,22 +387,22 @@ export function Salaries() {
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Semaine du 15 au 21 septembre 2025</h3>
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-3 h-3 rounded bg-available"></div>
-                    <span>Disponible</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-3 h-3 rounded bg-absent"></div>
-                    <span>Absent</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-3 h-3 rounded bg-suivi"></div>
-                    <span>Suivi</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-3 h-3 rounded bg-formation"></div>
-                    <span>Formation</span>
-                  </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <div className="w-3 h-3 rounded bg-available"></div>
+                          <span>Présent</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <div className="w-3 h-3 rounded bg-conges"></div>
+                          <span>Congés</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <div className="w-3 h-3 rounded bg-maladie"></div>
+                          <span>Maladie/Accident</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <div className="w-3 h-3 rounded bg-autre"></div>
+                          <span>Autres</span>
+                        </div>
                 </div>
               </div>
 
