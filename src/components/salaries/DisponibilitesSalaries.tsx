@@ -1,10 +1,14 @@
 import { useState } from "react";
-import { Calendar, Users } from "lucide-react";
+import { Calendar, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useDisponibilites, useUpdateDisponibilite } from "@/hooks/useEncadrants";
+import { useSalaries } from "@/hooks/useSalaries";
+import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
+import { fr } from "date-fns/locale";
 
 // Mock data for demonstration
 const salaries = [
@@ -52,17 +56,17 @@ const salaries = [
   }
 ];
 
-const generateWeekDays = () => {
+const generateWeekDays = (weekStart: Date) => {
   const days = [];
-  const startDate = new Date(2025, 8, 15); // 15 septembre 2025 (lundi)
+  const monday = startOfWeek(weekStart, { weekStartsOn: 1 });
   
   for (let i = 0; i < 7; i++) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
+    const date = addDays(monday, i);
     days.push({
-      date: date.toISOString().split('T')[0],
+      date: format(date, 'yyyy-MM-dd'),
       day: date.getDate(),
-      weekday: date.toLocaleDateString('fr-FR', { weekday: 'short' })
+      weekday: format(date, 'eee', { locale: fr }),
+      fullDate: date
     });
   }
   return days;
@@ -70,33 +74,50 @@ const generateWeekDays = () => {
 
 export function DisponibilitesSalaries() {
   const { toast } = useToast();
+  const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   
-  const weekDays = generateWeekDays();
+  const weekDays = generateWeekDays(currentWeek);
+  const { data: disponibilites = [] } = useDisponibilites('SALARIE', weekDays[0]?.date, weekDays[weekDays.length - 1]?.date);
+  const updateDisponibilite = useUpdateDisponibilite();
+
+  const handlePreviousWeek = () => {
+    setCurrentWeek(prev => subWeeks(prev, 1));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeek(prev => addWeeks(prev, 1));
+  };
 
   const handleAvailabilityClick = (salarieId: number, date: string) => {
     const currentStatus = getAvailabilityStatus(salarieId, date);
-    const statusCycle = ['available', 'absent', 'suivi', 'formation'];
+    const statusCycle = ['available', 'absent', 'conges', 'maladie'];
     const currentIndex = statusCycle.indexOf(currentStatus);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
     
+    updateDisponibilite.mutate({
+      personneType: 'SALARIE',
+      personneId: salarieId.toString(),
+      date,
+      statut: nextStatus
+    });
+    
     toast({ 
       title: "Disponibilité mise à jour", 
-      description: `${nextStatus === 'available' ? 'Disponible' : nextStatus} le ${new Date(date).toLocaleDateString('fr-FR')}` 
+      description: `${getStatusLabel(nextStatus)} le ${new Date(date).toLocaleDateString('fr-FR')}` 
     });
   };
   
-  // Mock availability data
   const getAvailabilityStatus = (salarieId: number, date: string) => {
-    const day = new Date(date).getDay();
-    const isWeekend = day === 0 || day === 6;
+    const savedDisponibilite = disponibilites.find(d => 
+      d.personne_id === salarieId.toString() && d.date === date
+    );
     
-    if (isWeekend) return 'weekend';
+    if (savedDisponibilite) {
+      return savedDisponibilite.statut;
+    }
     
-    // Random pattern for demo
-    const random = (salarieId * date.length) % 10;
-    if (random < 6) return 'available';
-    if (random < 8) return 'absent';
-    return 'suivi';
+    // Par défaut: disponible (vert)
+    return 'available';
   };
 
   const getStatusColor = (status: string) => {
@@ -105,12 +126,10 @@ export function DisponibilitesSalaries() {
         return 'bg-available';
       case 'absent':
         return 'bg-absent';
-      case 'suivi':
-        return 'bg-suivi';
-      case 'formation':
-        return 'bg-formation';
-      case 'weekend':
-        return 'bg-muted';
+      case 'conges':
+        return 'bg-conges';
+      case 'maladie':
+        return 'bg-maladie';
       default:
         return 'bg-autre';
     }
@@ -119,19 +138,20 @@ export function DisponibilitesSalaries() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'available':
-        return 'Disponible';
+        return 'Présent';
       case 'absent':
         return 'Absent';
-      case 'suivi':
-        return 'Suivi';
-      case 'formation':
-        return 'Formation';
-      case 'weekend':
-        return 'Week-end';
+      case 'conges':
+        return 'Congés';
+      case 'maladie':
+        return 'Maladie/Accident';
       default:
         return 'Autre';
     }
   };
+
+  const weekStartFormatted = format(weekDays[0]?.fullDate || new Date(), 'dd MMM', { locale: fr });
+  const weekEndFormatted = format(weekDays[6]?.fullDate || new Date(), 'dd MMM yyyy', { locale: fr });
 
   return (
     <div className="space-y-6 p-6">
@@ -144,25 +164,36 @@ export function DisponibilitesSalaries() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {/* Calendar Header */}
+            {/* Navigation semaine */}
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Semaine du 15 au 21 septembre 2025</h3>
+              <div className="flex items-center space-x-4">
+                <Button variant="outline" size="sm" onClick={handlePreviousWeek}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <h3 className="text-lg font-semibold">
+                  Semaine du {weekStartFormatted} au {weekEndFormatted}
+                </h3>
+                <Button variant="outline" size="sm" onClick={handleNextWeek}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+              
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2 text-sm">
                   <div className="w-3 h-3 rounded bg-available"></div>
-                  <span>Disponible</span>
+                  <span>Présent</span>
                 </div>
                 <div className="flex items-center space-x-2 text-sm">
-                  <div className="w-3 h-3 rounded bg-absent"></div>
-                  <span>Absent</span>
+                  <div className="w-3 h-3 rounded bg-conges"></div>
+                  <span>Congés</span>
                 </div>
                 <div className="flex items-center space-x-2 text-sm">
-                  <div className="w-3 h-3 rounded bg-suivi"></div>
-                  <span>Suivi</span>
+                  <div className="w-3 h-3 rounded bg-maladie"></div>
+                  <span>Maladie/Accident</span>
                 </div>
                 <div className="flex items-center space-x-2 text-sm">
-                  <div className="w-3 h-3 rounded bg-formation"></div>
-                  <span>Formation</span>
+                  <div className="w-3 h-3 rounded bg-autre"></div>
+                  <span>Autres</span>
                 </div>
               </div>
             </div>

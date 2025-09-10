@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { UserCheck, Phone, Mail, Calendar, Plus, Edit, Trash2 } from "lucide-react";
+import { UserCheck, Phone, Mail, Calendar, Plus, Edit, Trash2, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
+import { fr } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,17 +15,17 @@ import { useToast } from "@/hooks/use-toast";
 
 // Remove mock data - using Supabase data now
 
-const generateWeekDays = () => {
+const generateWeekDays = (weekStart: Date) => {
   const days = [];
-  const startDate = new Date(2025, 8, 15); // 15 septembre 2025 (lundi)
+  const monday = startOfWeek(weekStart, { weekStartsOn: 1 });
   
   for (let i = 0; i < 7; i++) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
+    const date = addDays(monday, i);
     days.push({
-      date: date.toISOString().split('T')[0],
+      date: format(date, 'yyyy-MM-dd'),
       day: date.getDate(),
-      weekday: date.toLocaleDateString('fr-FR', { weekday: 'short' })
+      weekday: format(date, 'eee', { locale: fr }),
+      fullDate: date
     });
   }
   return days;
@@ -31,12 +33,13 @@ const generateWeekDays = () => {
 
 export function Encadrants() {
   const [selectedEncadrant, setSelectedEncadrant] = useState<number | null>(null);
-  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [view, setView] = useState<'list' | 'calendar' | 'encadrant-view'>('list');
   const [showEncadrantModal, setShowEncadrantModal] = useState(false);
   const [editingEncadrant, setEditingEncadrant] = useState<any>(null);
+  const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const { toast } = useToast();
   
-  const weekDays = generateWeekDays();
+  const weekDays = generateWeekDays(currentWeek);
   const { data: encadrants = [], isLoading } = useEncadrants();
   const { data: salaries = [] } = useSalaries();
   const { data: disponibilites = [] } = useDisponibilites('ENCADRANT', weekDays[0]?.date, weekDays[weekDays.length - 1]?.date);
@@ -80,7 +83,7 @@ export function Encadrants() {
 
   const handleAvailabilityClick = (encadrantId: string, date: string) => {
     const currentStatus = getAvailabilityStatus(encadrantId, date);
-    const statusCycle: ('available' | 'absent' | 'suivi' | 'formation')[] = ['available', 'absent', 'suivi', 'formation'];
+    const statusCycle: ('available' | 'absent' | 'conges' | 'maladie')[] = ['available', 'absent', 'conges', 'maladie'];
     const currentIndex = statusCycle.indexOf(currentStatus);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
     
@@ -92,9 +95,15 @@ export function Encadrants() {
     });
   };
   
-  // Mock availability data
-  const getAvailabilityStatus = (encadrantId: string, date: string): 'available' | 'absent' | 'suivi' | 'formation' => {
-    // Chercher dans les données de la base d'abord
+  const handlePreviousWeek = () => {
+    setCurrentWeek(prev => subWeeks(prev, 1));
+  };
+
+  const handleNextWeek = () => {
+    setCurrentWeek(prev => addWeeks(prev, 1));
+  };
+  
+  const getAvailabilityStatus = (encadrantId: string, date: string): 'available' | 'absent' | 'conges' | 'maladie' => {
     const savedDisponibilite = disponibilites.find(d => 
       d.personne_id === encadrantId && d.date === date
     );
@@ -103,13 +112,7 @@ export function Encadrants() {
       return savedDisponibilite.statut;
     }
     
-    // Fallback sur le pattern par défaut si pas de données sauvegardées
-    const day = new Date(date).getDay();
-    const isWeekend = day === 0 || day === 6;
-    
-    if (isWeekend) return 'absent';
-    
-    // Pattern par défaut: la plupart disponibles
+    // Par défaut: disponible (vert)
     return 'available';
   };
 
@@ -119,10 +122,10 @@ export function Encadrants() {
         return 'bg-available';
       case 'absent':
         return 'bg-absent';
-      case 'suivi':
-        return 'bg-suivi';
-      case 'formation':
-        return 'bg-formation';
+      case 'conges':
+        return 'bg-conges';
+      case 'maladie':
+        return 'bg-maladie';
       default:
         return 'bg-autre';
     }
@@ -131,13 +134,13 @@ export function Encadrants() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'available':
-        return 'Disponible';
+        return 'Présent';
       case 'absent':
         return 'Absent';
-      case 'suivi':
-        return 'Suivi';
-      case 'formation':
-        return 'Formation';
+      case 'conges':
+        return 'Congés';
+      case 'maladie':
+        return 'Maladie/Accident';
       default:
         return 'Autre';
     }
@@ -179,6 +182,14 @@ export function Encadrants() {
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Disponibilités
+              </Button>
+              <Button
+                variant={view === 'encadrant-view' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setView('encadrant-view')}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Vision par encadrant
               </Button>
               <Button className="bg-gradient-primary text-primary-foreground" onClick={handleNewEncadrant}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -248,23 +259,38 @@ export function Encadrants() {
                 ))}
               </TableBody>
             </Table>
-          ) : (
+          ) : view === 'calendar' ? (
             <div className="space-y-6">
-              {/* Calendar Header */}
+              {/* Navigation semaine */}
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Semaine du 15 au 21 septembre 2025</h3>
+                <div className="flex items-center space-x-4">
+                  <Button variant="outline" size="sm" onClick={handlePreviousWeek}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <h3 className="text-lg font-semibold">
+                    Semaine du {format(weekDays[0]?.fullDate || new Date(), 'dd MMM', { locale: fr })} au {format(weekDays[6]?.fullDate || new Date(), 'dd MMM yyyy', { locale: fr })}
+                  </h3>
+                  <Button variant="outline" size="sm" onClick={handleNextWeek}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+                
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2 text-sm">
                     <div className="w-3 h-3 rounded bg-available"></div>
-                    <span>Disponible</span>
+                    <span>Présent</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-3 h-3 rounded bg-absent"></div>
-                    <span>Absent</span>
+                    <div className="w-3 h-3 rounded bg-conges"></div>
+                    <span>Congés</span>
                   </div>
                   <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-3 h-3 rounded bg-suivi"></div>
-                    <span>Suivi</span>
+                    <div className="w-3 h-3 rounded bg-maladie"></div>
+                    <span>Maladie/Accident</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <div className="w-3 h-3 rounded bg-autre"></div>
+                    <span>Autres</span>
                   </div>
                 </div>
               </div>
@@ -315,6 +341,62 @@ export function Encadrants() {
 
               <div className="text-sm text-muted-foreground">
                 💡 Cliquez sur une case pour modifier la disponibilité
+              </div>
+            </div>
+          ) : (
+            // Vision par encadrant
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold">Vision par encadrant</h3>
+              <div className="grid gap-6">
+                {encadrants.filter(e => e.actif).map(encadrant => {
+                  const salariesEncadrant = salaries.filter(s => s.encadrant_referent_id === encadrant.id && s.actif);
+                  
+                  return (
+                    <Card key={encadrant.id} className="shadow-card">
+                      <CardHeader>
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="w-10 h-10" style={{ backgroundColor: encadrant.couleur }}>
+                            <AvatarFallback className="text-white font-semibold">
+                              {encadrant.initiales}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h4 className="font-semibold">{encadrant.nom}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {salariesEncadrant.length} salarié{salariesEncadrant.length !== 1 ? 's' : ''} assigné{salariesEncadrant.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {salariesEncadrant.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {salariesEncadrant.map(salarie => (
+                              <div key={salarie.id} className="flex items-center space-x-2 p-2 bg-muted rounded-lg">
+                                <Avatar className="w-6 h-6 bg-secondary">
+                                  <AvatarFallback className="text-secondary-foreground font-semibold text-xs">
+                                    {salarie.nom.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{salarie.nom}</div>
+                                  <div className="text-xs text-muted-foreground">{salarie.niveau_autonomie}</div>
+                                </div>
+                                {salarie.conducteur && (
+                                  <Badge variant="secondary" className="text-xs">Conducteur</Badge>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p>Aucun salarié assigné à cet encadrant</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           )}

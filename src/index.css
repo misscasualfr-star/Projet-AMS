@@ -42,8 +42,8 @@
     /* Status colors for availability */
     --available: 142 76% 36%;
     --absent: 0 84% 60%;
-    --suivi: 34 100% 50%;
-    --formation: 217 91% 50%;
+    --conges: 34 100% 50%;
+    --maladie: 271 91% 50%;
     --autre: 220 9% 46%;
 
     /* Client colors - Soft pastels for cards */
@@ -131,8 +131,8 @@
     /* Status colors - adjusted for dark mode */
     --available: 142 76% 50%;
     --absent: 0 84% 70%;
-    --suivi: 34 100% 60%;
-    --formation: 217 91% 65%;
+    --conges: 34 100% 60%;
+    --maladie: 271 91% 65%;
     --autre: 220 9% 60%;
 
     /* Client colors - darker versions for dark mode */

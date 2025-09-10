@@ -13,6 +13,7 @@ import { useCreateChantier, useChantiers, useUpdateChantier, useDeleteChantier }
 import { useClients } from "@/hooks/useClients";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { fr } from "date-fns/locale";
+import { MonthCalendar } from "@/components/ui/month-calendar";
 
 const generateDays = (weekStart: Date) => {
   const days = [];
@@ -95,26 +96,35 @@ export function PlanningPrevisional() {
   
   const getClientColor = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
-    return client?.couleur || "client-1";
+    return client?.couleur || "hsl(var(--client-1))";
   };
 
-  const getStatusBadge = (statut: string) => {
-    switch (statut) {
-      case "confirme":
-        return <Badge className="bg-available text-white">Confirmé</Badge>;
-      case "prevu":
-        return <Badge className="bg-suivi text-white">Prévu</Badge>;
-      case "formation":
-        return <Badge className="bg-formation text-white">Formation</Badge>;
-      default:
-        return <Badge variant="secondary">{statut}</Badge>;
-    }
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      'planned': { label: 'Planifié', variant: 'secondary' as const },
+      'confirmed': { label: 'Confirmé', variant: 'default' as const },
+      'in_progress': { label: 'En cours', variant: 'default' as const },
+      'completed': { label: 'Terminé', variant: 'secondary' as const },
+      'cancelled': { label: 'Annulé', variant: 'destructive' as const },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.planned;
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   const filteredChantiers = chantiers.filter(chantier => {
-    const clientMatch = selectedClient === "all" || chantier.client_id === selectedClient;
-    const statusMatch = selectedStatus === "all" || chantier.status === selectedStatus;
-    return clientMatch && statusMatch;
+    const matchesClient = selectedClient === "all" || chantier.client_id === selectedClient;
+    const matchesStatus = selectedStatus === "all" || chantier.status === selectedStatus;
+    
+    // Vérifier si le chantier couvre au moins un jour de la semaine actuelle
+    const chantierStart = new Date(chantier.start_date);
+    const chantierEnd = chantier.end_date ? new Date(chantier.end_date) : chantierStart;
+    const weekStart = new Date(days[0].date);
+    const weekEnd = new Date(days[6].date);
+    
+    const isInWeek = chantierStart <= weekEnd && chantierEnd >= weekStart;
+    
+    return matchesClient && matchesStatus && isInWeek;
   });
 
   return (
@@ -148,7 +158,7 @@ export function PlanningPrevisional() {
                       selected={currentWeek}
                       onSelect={handleDateSelect}
                       initialFocus
-                      className={cn("p-3 pointer-events-auto")}
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -160,24 +170,12 @@ export function PlanningPrevisional() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-center">
-            <h3 className="text-lg font-semibold">
-              Semaine du {format(startOfWeek(currentWeek, { weekStartsOn: 1 }), "dd", { locale: fr })} au {format(addDays(startOfWeek(currentWeek, { weekStartsOn: 1 }), 6), "dd MMMM yyyy", { locale: fr })}
-            </h3>
-          </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4" />
+              <span className="text-sm font-medium">Filtres :</span>
+            </div>
 
-      {/* Filters */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Filter className="w-5 h-5" />
-            <span>Filtres et options</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
             <Select value={selectedClient} onValueChange={setSelectedClient}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Tous les clients" />
@@ -185,16 +183,11 @@ export function PlanningPrevisional() {
               <SelectContent>
                 <SelectItem value="all">Tous les clients</SelectItem>
                 {clientsError?.message.includes('admin') ? (
-                  <SelectItem value="restricted" disabled>
-                    Accès clients restreint (admin requis)
-                  </SelectItem>
+                  <SelectItem value="restricted" disabled>🔒 Accès restreint</SelectItem>
                 ) : (
                   clients.map(client => (
                     <SelectItem key={client.id} value={client.id}>
-                      <div className="flex items-center space-x-2">
-                        <div className={cn("w-3 h-3 rounded-full", `bg-${client.couleur}`)} />
-                        <span>{client.nom}</span>
-                      </div>
+                      {client.nom}
                     </SelectItem>
                   ))
                 )}
@@ -221,103 +214,123 @@ export function PlanningPrevisional() {
         </CardContent>
       </Card>
 
-      {/* Planning Grid */}
-      <div className="grid gap-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
-          {days.map(day => (
-            <div key={day.date} className={cn(
-              "space-y-3",
-              day.isWeekend ? "opacity-50" : ""
-            )}>
-              <div className="text-center p-3 bg-muted rounded-lg">
-                <h3 className="font-semibold text-foreground">{day.label}</h3>
-                <p className="text-sm text-muted-foreground">{day.date}</p>
-              </div>
+      {/* Planning Grid avec calendrier mensuel */}
+      <div className="space-y-6">
+        {/* Vue semaine */}
+        <div className="grid gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
+            {days.map(day => (
+              <div key={day.date} className={cn(
+                "space-y-3",
+                day.isWeekend ? "opacity-50" : ""
+              )}>
+                <div className="text-center p-3 bg-muted rounded-lg">
+                  <h3 className="font-semibold text-foreground">{day.label}</h3>
+                  <p className="text-sm text-muted-foreground">{day.date}</p>
+                </div>
 
-              <div className="space-y-2 min-h-[200px]">
-                {filteredChantiers
-                  .filter(chantier => chantier.start_date === day.date)
-                  .map(chantier => {
-                    const client = clients.find(c => c.id === chantier.client_id);
-                    return (
-                      <Card 
-                        key={chantier.id} 
-                        className={cn(
-                          "group cursor-pointer transition-smooth hover:shadow-elevated border-l-4 relative",
-                          `border-l-${getClientColor(chantier.client_id || "")} bg-${getClientColor(chantier.client_id || "")}/10`
-                        )}
-                      >
-                        <CardContent className="p-3 space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-sm text-foreground">
-                              {client?.nom || 'Client non défini'}
-                            </h4>
-                            <div className="flex items-center space-x-1">
-                              {getStatusBadge(chantier.status || 'planned')}
-                              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 ml-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditChantier(chantier);
-                                  }}
-                                >
-                                  <Edit className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteChantier(chantier.id);
-                                  }}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
+                <div className="space-y-2 min-h-[200px]">
+                  {filteredChantiers
+                    .filter(chantier => {
+                      const chantierStart = new Date(chantier.start_date);
+                      const chantierEnd = chantier.end_date ? new Date(chantier.end_date) : chantierStart;
+                      const dayDate = new Date(day.date);
+                      
+                      // Afficher le chantier sur tous les jours où il est actif
+                      return dayDate >= chantierStart && dayDate <= chantierEnd;
+                    })
+                    .map(chantier => {
+                      const client = clients.find(c => c.id === chantier.client_id);
+                      return (
+                        <Card 
+                          key={chantier.id} 
+                          className="group cursor-pointer transition-smooth hover:shadow-elevated border-l-4 relative"
+                          style={{ borderLeftColor: getClientColor(chantier.client_id || '') }}
+                        >
+                          <CardContent className="p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold text-sm text-foreground">
+                                {client?.nom || 'Client non défini'}
+                              </h4>
+                              <div className="flex items-center space-x-1">
+                                {getStatusBadge(chantier.status || 'planned')}
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1 ml-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditChantier(chantier);
+                                    }}
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteChantier(chantier.id);
+                                    }}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          
-                          <p className="text-sm font-medium text-card-foreground">
-                            {chantier.name}
-                          </p>
-                          
-                          <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-                            <MapPin className="w-3 h-3" />
-                            <span>{chantier.address}</span>
-                          </div>
-                          
-                          <div className="flex justify-between items-center pt-2 border-t border-border">
-                            <div className="flex items-center space-x-1 text-xs">
-                              <UserCheck className="w-3 h-3 text-primary" />
-                              <span>{chantier.besoins_encadrants || 0}</span>
+                            
+                            <p className="text-sm font-medium text-card-foreground">
+                              {chantier.name}
+                            </p>
+                            
+                            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+                              <MapPin className="w-3 h-3" />
+                              <span>{chantier.address}</span>
                             </div>
-                            <div className="flex items-center space-x-1 text-xs">
-                              <Users className="w-3 h-3 text-accent" />
-                              <span>{chantier.besoins_salaries || 0}</span>
+                            
+                            <div className="flex justify-between items-center pt-2 border-t border-border">
+                              <div className="flex items-center space-x-1 text-xs">
+                                <span className="font-medium">Encadrants: {chantier.besoins_encadrants || 0}</span>
+                              </div>
+                              <div className="flex items-center space-x-1 text-xs">
+                                <span className="font-medium">Salariés: {chantier.besoins_salaries || 0}</span>
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                
-                {!day.isWeekend && (
-                  <Button
-                    variant="ghost"
-                    className="w-full h-12 border-2 border-dashed border-border hover:border-primary text-muted-foreground hover:text-primary"
-                    onClick={handleNewChantier}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Ajouter chantier
-                  </Button>
-                )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  
+                  {!day.isWeekend && (
+                    <Button
+                      variant="ghost"
+                      className="w-full h-12 border-2 border-dashed border-border hover:border-primary text-muted-foreground hover:text-primary"
+                      onClick={handleNewChantier}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Ajouter chantier
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+        
+        {/* Vue calendrier mensuel */}
+        <div className="mt-8">
+          <h3 className="text-xl font-semibold mb-4">Vue mensuelle</h3>
+          <MonthCalendar
+            selectedDate={currentWeek}
+            onDateSelect={(date) => setCurrentWeek(date)}
+            events={filteredChantiers.map(chantier => ({
+              date: new Date(chantier.start_date),
+              title: chantier.name,
+              color: getClientColor(chantier.client_id || '')
+            }))}
+          />
         </div>
       </div>
 
@@ -336,7 +349,10 @@ export function PlanningPrevisional() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {clients.map(client => (
                 <div key={client.id} className="flex items-center space-x-2">
-                  <div className={cn("w-4 h-4 rounded", `bg-${client.couleur}`)} />
+                  <div 
+                    className="w-4 h-4 rounded" 
+                    style={{ backgroundColor: client.couleur }}
+                  />
                   <span className="text-sm font-medium">{client.nom}</span>
                 </div>
               ))}

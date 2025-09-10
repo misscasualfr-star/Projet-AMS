@@ -293,20 +293,22 @@ export function AffectationQuotidienne() {
         {/* Header with date and indicators */}
         <Card className="shadow-card">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col space-y-4">
               <CardTitle className="flex items-center space-x-2">
                 <LayoutDashboard className="w-5 h-5" />
                 <span>Affectation quotidienne</span>
-                <Badge variant="outline" className="ml-4">
-                  {currentDate.toLocaleDateString('fr-FR', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </Badge>
               </CardTitle>
-              <div className="flex items-center space-x-4">
+              
+              <div className="text-4xl font-bold text-primary text-center p-6 bg-primary/5 rounded-lg border-2 border-primary/20">
+                {currentDate.toLocaleDateString('fr-FR', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </div>
+              
+              <div className="flex items-center justify-end space-x-4">
                 <Button variant="outline" size="sm" onClick={handleDateChange}>
                   <Calendar className="w-4 h-4 mr-2" />
                   Changer de jour
@@ -377,7 +379,27 @@ export function AffectationQuotidienne() {
           </CardContent>
         </Card>
 
-        {/* Drag & Drop Boards */}
+        {/* Drag & Drop Board - Ajout fonction annuler */}
+        <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+          <div className="text-sm text-muted-foreground flex items-center justify-between">
+            💡 <strong>Instructions :</strong> Glissez les encadrants vers les chantiers pour les affecter. 
+            Glissez ensuite les salariés vers les encadrants déjà affectés pour former les équipes.
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                // Supprimer toutes les affectations du jour
+                deleteAffectations.mutate({ date: dateString });
+                toast({
+                  title: "Affectations annulées",
+                  description: "Toutes les affectations du jour ont été supprimées"
+                });
+              }}
+            >
+              Annuler toutes les affectations
+            </Button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Column 1: Chantiers du jour */}
           <Card className="shadow-card">
@@ -462,14 +484,12 @@ export function AffectationQuotidienne() {
                         )}
 
                         {/* Besoins */}
-                        <div className="flex justify-between items-center pt-2 border-t border-border">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-1 text-xs">
-                            <UserCheck className="w-3 h-3 text-primary" />
-                            <span>{encadrant ? 1 : 0}/{chantier.besoins_encadrants || 1}</span>
+                            <span className="font-medium">Enc: {encadrant ? 1 : 0}/{chantier.besoins_encadrants || 1}</span>
                           </div>
                           <div className="flex items-center space-x-1 text-xs">
-                            <Users className="w-3 h-3 text-accent" />
-                            <span>{salariesAffectes.length}/{chantier.besoins_salaries || 0}</span>
+                            <span className="font-medium">Sal: {salariesAffectes.length}/{chantier.besoins_salaries || 0}</span>
                           </div>
                         </div>
 
@@ -575,6 +595,7 @@ export function AffectationQuotidienne() {
             <div className="text-sm text-muted-foreground">
               💡 <strong>Instructions :</strong> Glissez les encadrants vers les chantiers pour les affecter. 
               Glissez ensuite les salariés vers les encadrants déjà affectés pour former les équipes.
+              Utilisez le bouton "Annuler toutes les affectations" ci-dessus pour recommencer.
             </div>
           </CardContent>
         </Card>

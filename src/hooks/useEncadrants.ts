@@ -17,7 +17,7 @@ export interface Disponibilite {
   personne_type: 'ENCADRANT' | 'SALARIE';
   personne_id: string;
   date: string;
-  statut: 'available' | 'absent' | 'suivi' | 'formation';
+  statut: 'available' | 'absent' | 'conges' | 'maladie';
 }
 
 export function useEncadrants() {
@@ -156,7 +156,7 @@ export function useUpdateDisponibilite() {
       personneType: 'ENCADRANT' | 'SALARIE';
       personneId: string;
       date: string;
-      statut: 'available' | 'absent' | 'suivi' | 'formation';
+      statut: 'available' | 'absent' | 'conges' | 'maladie';
     }) => {
       const { data, error } = await supabase
         .from('disponibilites')
