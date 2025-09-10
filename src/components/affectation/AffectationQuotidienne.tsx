@@ -512,81 +512,87 @@ export function AffectationQuotidienne() {
           </Card>
 
           {/* Column 2: Encadrants disponibles */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="text-lg">Encadrants disponibles ({encadrantsDisponibles.length})</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {encadrantsDisponibles.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Aucun encadrant disponible</p>
-                </div>
-              ) : (
-                encadrantsDisponibles.map(encadrant => (
-                  <DraggableItem 
-                    key={encadrant.id} 
-                    id={encadrant.id}
-                    className="cursor-move"
-                  >
-                    <Card className="transition-smooth hover:shadow-elevated bg-gradient-surface">
-                      <CardContent className="p-3">
-                        <div className="flex items-center space-x-3">
-                          <Avatar className="w-8 h-8" style={{ backgroundColor: encadrant.couleur }}>
-                            <AvatarFallback className="text-white font-semibold text-sm">
-                              {encadrant.initiales}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-medium text-sm">{encadrant.nom}</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Disponible pour affectation
+          <DroppableArea id="encadrants-disponibles" className="h-full">
+            <Card className="shadow-card h-full">
+              <CardHeader>
+                <CardTitle className="text-lg">Encadrants disponibles ({encadrantsDisponibles.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {encadrantsDisponibles.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Aucun encadrant disponible</p>
+                    <p className="text-xs mt-2">Glissez ici pour désaffecter</p>
+                  </div>
+                ) : (
+                  encadrantsDisponibles.map(encadrant => (
+                    <DraggableItem 
+                      key={encadrant.id} 
+                      id={encadrant.id}
+                      className="cursor-move"
+                    >
+                      <Card className="transition-smooth hover:shadow-elevated bg-gradient-surface">
+                        <CardContent className="p-3">
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="w-8 h-8" style={{ backgroundColor: encadrant.couleur }}>
+                              <AvatarFallback className="text-white font-semibold text-sm">
+                                {encadrant.initiales}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium text-sm">{encadrant.nom}</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Disponible pour affectation
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </DraggableItem>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                        </CardContent>
+                      </Card>
+                    </DraggableItem>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </DroppableArea>
 
           {/* Column 3: Salariés disponibles */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="text-lg">Salariés disponibles ({salariesDisponibles.length})</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {salariesDisponibles.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Aucun salarié disponible</p>
-                </div>
-              ) : (
-                salariesDisponibles.map(salarie => (
-                  <DraggableItem 
-                    key={salarie.id} 
-                    id={salarie.id}
-                    className="cursor-move"
-                  >
-                    <Card className="transition-smooth hover:shadow-card bg-gradient-surface">
-                      <CardContent className="p-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{salarie.nom}</span>
-                          <div className="flex items-center space-x-1">
-                            {salarie.conducteur && (
-                              <Badge variant="secondary" className="text-xs">🚗</Badge>
-                            )}
+          <DroppableArea id="salaries-disponibles" className="h-full">
+            <Card className="shadow-card h-full">
+              <CardHeader>
+                <CardTitle className="text-lg">Salariés disponibles ({salariesDisponibles.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {salariesDisponibles.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Aucun salarié disponible</p>
+                    <p className="text-xs mt-2">Glissez ici pour désaffecter</p>
+                  </div>
+                ) : (
+                  salariesDisponibles.map(salarie => (
+                    <DraggableItem 
+                      key={salarie.id} 
+                      id={salarie.id}
+                      className="cursor-move"
+                    >
+                      <Card className="transition-smooth hover:shadow-card bg-gradient-surface">
+                        <CardContent className="p-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">{salarie.nom}</span>
+                            <div className="flex items-center space-x-1">
+                              {salarie.conducteur && (
+                                <Badge variant="secondary" className="text-xs">🚗</Badge>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </DraggableItem>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                        </CardContent>
+                      </Card>
+                    </DraggableItem>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </DroppableArea>
         </div>
 
         {/* Instructions */}

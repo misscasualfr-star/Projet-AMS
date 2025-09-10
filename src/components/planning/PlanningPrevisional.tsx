@@ -43,7 +43,7 @@ export function PlanningPrevisional() {
   const createChantier = useCreateChantier();
   const updateChantier = useUpdateChantier();
   const deleteChantier = useDeleteChantier();
-  const { data: chantiers = [] } = useChantiers();
+  const { data: chantiers = [], error: chantiersError } = useChantiers();
   const { data: clients = [], error: clientsError } = useClients();
   
   const days = generateDays(currentWeek);
@@ -96,7 +96,7 @@ export function PlanningPrevisional() {
   
   const getClientColor = (clientId: string) => {
     const client = clients.find(c => c.id === clientId);
-    return client?.couleur || "hsl(var(--client-1))";
+    return client?.couleur || 'hsl(220 38 127)';
   };
 
   const getStatusBadge = (status: string) => {
@@ -124,7 +124,7 @@ export function PlanningPrevisional() {
     
     const isInWeek = chantierStart <= weekEnd && chantierEnd >= weekStart;
     
-    return matchesClient && matchesStatus && isInWeek;
+  return matchesClient && matchesStatus && isInWeek;
   });
 
   return (
@@ -290,14 +290,14 @@ export function PlanningPrevisional() {
                               <span>{chantier.address}</span>
                             </div>
                             
-                            <div className="flex justify-between items-center pt-2 border-t border-border">
-                              <div className="flex items-center space-x-1 text-xs">
-                                <span className="font-medium">Encadrants: {chantier.besoins_encadrants || 0}</span>
-                              </div>
-                              <div className="flex items-center space-x-1 text-xs">
-                                <span className="font-medium">Salariés: {chantier.besoins_salaries || 0}</span>
-                              </div>
-                            </div>
+                             <div className="flex justify-between items-center pt-2 border-t border-border">
+                               <div className="flex items-center space-x-1 text-xs">
+                                 <span className="font-medium">Encadrants: {chantier.besoins_encadrants || 0}</span>
+                               </div>
+                               <div className="flex items-center space-x-1 text-xs">
+                                 <span className="font-medium">Salariés: {chantier.besoins_salaries || 0}</span>
+                               </div>
+                             </div>
                           </CardContent>
                         </Card>
                       );
@@ -337,7 +337,7 @@ export function PlanningPrevisional() {
       {/* Legend */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle className="text-lg">Légende</CardTitle>
+          <CardTitle className="text-lg">Clients</CardTitle>
         </CardHeader>
         <CardContent>
           {clientsError?.message.includes('admin') ? (

@@ -269,36 +269,23 @@ export function PlanningHebdomadaire() {
                               day.isWeekend ? "bg-muted/20" : "bg-background hover:bg-muted/10",
                               selectedCell?.chantierId === chantier.id && selectedCell?.date === day.date 
                                 ? "ring-2 ring-primary animate-scale-in" : "",
-                              stats.isComplete ? "border-available hover:border-available/80" : "border-border hover:border-primary/50"
+                              stats.isComplete ? "border-available hover:border-available/80" : "bg-incomplete border-destructive"
                             )}
                             onClick={() => handleCellClick(chantier.id, day.date)}
                           >
                             {encadrant && (
                               <div className="mb-2 animate-fade-in">
-                                <div className="flex items-center space-x-1 hover-scale">
-                                  <Avatar className="w-5 h-5" style={{ backgroundColor: encadrant.couleur }}>
-                                    <AvatarFallback className="text-white font-semibold text-xs">
-                                      {encadrant.initiales}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-xs font-medium truncate">{encadrant.nom.split(' ')[0]}</span>
+                                <div className="text-xs font-medium text-primary">
+                                  Encadrant: {encadrant.nom}
                                 </div>
                               </div>
                             )}
                             
                             {salariesAffectes.length > 0 && (
                               <div className="space-y-1 animate-fade-in">
-                                {salariesAffectes.slice(0, 2).map(salarie => (
-                                  <Badge key={salarie?.id} variant="secondary" className="text-xs p-1 hover-scale">
-                                    {salarie?.nom.split(' ')[0]}
-                                    {salarie?.conducteur && " 🚗"}
-                                  </Badge>
-                                ))}
-                                {salariesAffectes.length > 2 && (
-                                  <Badge variant="outline" className="text-xs p-1 hover-scale">
-                                    +{salariesAffectes.length - 2}
-                                  </Badge>
-                                )}
+                                <div className="text-xs font-medium text-accent">
+                                  Salariés: {salariesAffectes.map(s => s?.nom).join(', ')}
+                                </div>
                               </div>
                             )}
 
@@ -359,7 +346,7 @@ export function PlanningHebdomadaire() {
                   <span>Affectation complète</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border border-border rounded" />
+                  <div className="w-4 h-4 bg-incomplete rounded" />
                   <span>Affectation incomplète</span>
                 </div>
                 <div className="flex items-center space-x-2">

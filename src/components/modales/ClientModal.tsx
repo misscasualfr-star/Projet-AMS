@@ -15,12 +15,18 @@ interface ClientModalProps {
 }
 
 const couleurs = [
-  { value: "hsl(var(--client-1))", label: "Bleu" },
-  { value: "hsl(var(--client-2))", label: "Vert" },
-  { value: "hsl(var(--client-3))", label: "Orange" },
-  { value: "hsl(var(--client-4))", label: "Violet" },
-  { value: "hsl(var(--client-5))", label: "Rouge" },
-  { value: "hsl(var(--client-6))", label: "Turquoise" },
+  { value: "hsl(220 38 127)", label: "Pink" },
+  { value: "hsl(16 185 129)", label: "Émeraude" },
+  { value: "hsl(59 130 246)", label: "Bleu" },
+  { value: "hsl(245 158 11)", label: "Ambre" },
+  { value: "hsl(239 68 68)", label: "Rouge" },
+  { value: "hsl(168 85 247)", label: "Violet" },
+  { value: "hsl(34 197 94)", label: "Vert" },
+  { value: "hsl(251 146 60)", label: "Orange" },
+  { value: "hsl(6 182 212)", label: "Cyan" },
+  { value: "hsl(244 63 94)", label: "Rose" },
+  { value: "hsl(139 69 19)", label: "Marron" },
+  { value: "hsl(99 102 241)", label: "Indigo" },
 ];
 
 export function ClientModal({ open, onOpenChange, client, onSave }: ClientModalProps) {
@@ -31,7 +37,7 @@ export function ClientModal({ open, onOpenChange, client, onSave }: ClientModalP
     telephone: client?.telephone || "",
     email: client?.email || "",
     adresse: client?.adresse || "",
-    couleur: client?.couleur || "hsl(var(--client-1))",
+    couleur: client?.couleur || "hsl(220 38 127)",
     actif: client?.actif ?? true,
   });
 
