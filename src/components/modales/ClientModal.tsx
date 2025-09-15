@@ -15,29 +15,36 @@ interface ClientModalProps {
 }
 
 const couleurs = [
-  { value: "hsl(220 38 127)", label: "Pink" },
-  { value: "hsl(16 185 129)", label: "Émeraude" },
-  { value: "hsl(59 130 246)", label: "Bleu" },
-  { value: "hsl(245 158 11)", label: "Ambre" },
-  { value: "hsl(239 68 68)", label: "Rouge" },
-  { value: "hsl(168 85 247)", label: "Violet" },
-  { value: "hsl(34 197 94)", label: "Vert" },
-  { value: "hsl(251 146 60)", label: "Orange" },
-  { value: "hsl(6 182 212)", label: "Cyan" },
-  { value: "hsl(244 63 94)", label: "Rose" },
-  { value: "hsl(139 69 19)", label: "Marron" },
-  { value: "hsl(99 102 241)", label: "Indigo" },
+  { value: "hsl(220 100% 50)", label: "Bleu électrique" },
+  { value: "hsl(16 100% 60)", label: "Orange pétant" },
+  { value: "hsl(310 100% 55)", label: "Rose fuchsia" },
+  { value: "hsl(240 100% 60)", label: "Violet pétant" },
+  { value: "hsl(0 100% 60)", label: "Rouge vif" },
+  { value: "hsl(120 100% 40)", label: "Vert pétant" },
+  { value: "hsl(180 100% 50)", label: "Cyan électrique" },
+  { value: "hsl(60 100% 50)", label: "Jaune vif" },
+  { value: "hsl(280 100% 60)", label: "Magenta" },
+  { value: "hsl(30 100% 55)", label: "Orange brûlé" },
+  { value: "hsl(200 100% 50)", label: "Bleu azur" },
+  { value: "hsl(340 100% 55)", label: "Rose bonbon" },
+  { value: "hsl(90 100% 40)", label: "Vert lime" },
+  { value: "hsl(270 100% 65)", label: "Pourpre" },
+  { value: "hsl(150 100% 45)", label: "Turquoise" },
+  { value: "hsl(45 100% 55)", label: "Or" },
+  { value: "hsl(300 100% 50)", label: "Magenta vif" },
+  { value: "hsl(210 100% 55)", label: "Bleu roi" },
 ];
 
 export function ClientModal({ open, onOpenChange, client, onSave }: ClientModalProps) {
   const { toast } = useToast();
+  const [expandedColorPalette, setExpandedColorPalette] = useState(false);
   const [formData, setFormData] = useState({
     nom: client?.nom || "",
     contact: client?.contact || "",
     telephone: client?.telephone || "",
     email: client?.email || "",
     adresse: client?.adresse || "",
-    couleur: client?.couleur || "hsl(220 38 127)",
+    couleur: client?.couleur || "hsl(220 100% 50)",
     actif: client?.actif ?? true,
   });
 
@@ -121,17 +128,31 @@ export function ClientModal({ open, onOpenChange, client, onSave }: ClientModalP
 
           <div className="space-y-2">
             <Label htmlFor="couleur">Couleur</Label>
-            <div className="flex space-x-2">
-              {couleurs.map(couleur => (
-                <button
-                  key={couleur.value}
-                  type="button"
-                  onClick={() => setFormData({...formData, couleur: couleur.value})}
-                  style={{ backgroundColor: couleur.value }}
-                  className={`w-8 h-8 rounded ${formData.couleur === couleur.value ? 'ring-2 ring-foreground' : ''}`}
-                  title={couleur.label}
-                />
-              ))}
+            <div className="space-y-2">
+              {/* Palette compacte */}
+              <div className="flex flex-wrap gap-2">
+                {couleurs.slice(0, expandedColorPalette ? couleurs.length : 6).map(couleur => (
+                  <button
+                    key={couleur.value}
+                    type="button"
+                    onClick={() => setFormData({...formData, couleur: couleur.value})}
+                    style={{ backgroundColor: couleur.value }}
+                    className={`w-8 h-8 rounded-full transition-transform hover:scale-110 ${formData.couleur === couleur.value ? 'ring-2 ring-foreground ring-offset-2' : ''}`}
+                    title={couleur.label}
+                  />
+                ))}
+              </div>
+              
+              {/* Bouton pour étendre/réduire la palette */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setExpandedColorPalette(!expandedColorPalette)}
+                className="text-xs"
+              >
+                {expandedColorPalette ? 'Moins de couleurs' : 'Plus de couleurs'}
+              </Button>
             </div>
           </div>
 

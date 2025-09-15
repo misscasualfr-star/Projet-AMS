@@ -35,9 +35,13 @@
     --muted: 220 14% 95%;
     --muted-foreground: 220 9% 46%;
 
-    /* Accent - Complementary color */
-    --accent: 34 100% 60%;
-    --accent-foreground: 224 71% 4%;
+    /* Accent - More vibrant color */
+    --accent: 16 100% 65%;
+    --accent-foreground: 0 0% 98%;
+
+    /* Status variations */
+    --suivi: 34 100% 55%;
+    --suivi-foreground: 0 0% 98%;
 
     /* Status colors for availability */
     --available: 34 197 94; /* Vert présent */
@@ -124,8 +128,12 @@
     --muted-foreground: 220 9% 60%;
 
     /* Accent */
-    --accent: 34 100% 70%;
+    --accent: 16 100% 75%;
     --accent-foreground: 224 71% 4%;
+
+    /* Status variations */
+    --suivi: 34 100% 65%;
+    --suivi-foreground: 224 71% 4%;
 
     /* Status colors - adjusted for dark mode */
     --available: 34 197 94; /* Vert présent */

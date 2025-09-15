@@ -199,11 +199,11 @@ export function Salaries() {
   const getNiveauColor = (niveau: string) => {
     switch (niveau) {
       case "Confirmé":
-        return "bg-available text-white";
+        return "bg-primary text-primary-foreground";
       case "Intermédiaire":
-        return "bg-conges text-white";
+        return "bg-secondary text-secondary-foreground";
       case "Débutant":
-        return "bg-maladie text-white";
+        return "bg-muted text-foreground";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -350,7 +350,7 @@ export function Salaries() {
                             <div className="text-sm">
                               {new Date(salarie.contrat_debut).toLocaleDateString('fr-FR')} - {new Date(salarie.contrat_fin).toLocaleDateString('fr-FR')}
                             </div>
-                            <Badge className={contractStatus.variant === "destructive" ? "bg-absent text-white" : "bg-available text-white"}>
+                            <Badge className={contractStatus.variant === "destructive" ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}>
                               {contractStatus.label}
                             </Badge>
                           </div>
@@ -361,7 +361,7 @@ export function Salaries() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge className={salarie.actif ? "bg-available text-white" : "bg-absent text-white"}>
+                          <Badge className={salarie.actif ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}>
                             {salarie.actif ? "Actif" : "Inactif"}
                           </Badge>
                         </TableCell>

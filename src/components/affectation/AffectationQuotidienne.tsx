@@ -69,6 +69,7 @@ export function AffectationQuotidienne() {
   const [selectedChantier, setSelectedChantier] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [actionHistory, setActionHistory] = useState<Array<{type: 'create' | 'delete', data: any}>>([]);
   
   const { toast } = useToast();
   
@@ -178,14 +179,44 @@ export function AffectationQuotidienne() {
 
     console.log('Drag end:', { draggedId, targetId });
 
+    // Check if dragging back to remove assignment
+    if (targetId === 'remove-zone') {
+      // Find and remove the assignment
+      const affectationToRemove = affectations.find(aff => 
+        aff.encadrant_id === draggedId || aff.salarie_id === draggedId
+      );
+      
+      if (affectationToRemove) {
+        // Store action for undo
+        setActionHistory(prev => [...prev, { type: 'delete', data: affectationToRemove }]);
+        
+        deleteAffectations.mutate({ 
+          projectId: affectationToRemove.project_id,
+          encadrantId: affectationToRemove.encadrant_id,
+          salarieId: affectationToRemove.salarie_id,
+          date: dateString 
+        });
+        
+        toast({
+          title: "Affectation supprimée",
+          description: "L'affectation a été retirée du chantier"
+        });
+      }
+      return;
+    }
+
     // Check if dragging an encadrant to a chantier
     if (encadrantsDisponibles.find(e => e.id === draggedId) && chantiersJour.find(c => c.id === targetId)) {
-      // Create encadrant affectation
-      createAffectation.mutate({
+      const affectationData = {
         project_id: targetId,
         encadrant_id: draggedId,
         date: dateString
-      });
+      };
+      
+      // Store action for undo
+      setActionHistory(prev => [...prev, { type: 'create', data: affectationData }]);
+      
+      createAffectation.mutate(affectationData);
       
       toast({
         title: "Encadrant affecté",
@@ -200,11 +231,16 @@ export function AffectationQuotidienne() {
       const encadrantAffectation = affectations.find(aff => aff.encadrant_id === targetId && !aff.salarie_id);
       
       if (encadrantAffectation) {
-        createAffectation.mutate({
+        const affectationData = {
           project_id: encadrantAffectation.project_id,
           salarie_id: draggedId,
           date: dateString
-        });
+        };
+        
+        // Store action for undo
+        setActionHistory(prev => [...prev, { type: 'create', data: affectationData }]);
+        
+        createAffectation.mutate(affectationData);
         
         toast({
           title: "Salarié affecté",
@@ -224,11 +260,16 @@ export function AffectationQuotidienne() {
       // Check if chantier has an encadrant
       const chantierAffectation = affectationsData[targetId];
       if (chantierAffectation?.encadrant) {
-        createAffectation.mutate({
+        const affectationData = {
           project_id: targetId,
           salarie_id: draggedId,
           date: dateString
-        });
+        };
+        
+        // Store action for undo
+        setActionHistory(prev => [...prev, { type: 'create', data: affectationData }]);
+        
+        createAffectation.mutate(affectationData);
         
         toast({
           title: "Salarié affecté",
@@ -241,6 +282,33 @@ export function AffectationQuotidienne() {
         });
       }
     }
+  };
+
+  const handleUndo = () => {
+    if (actionHistory.length === 0) return;
+    
+    const lastAction = actionHistory[actionHistory.length - 1];
+    
+    if (lastAction.type === 'create') {
+      // Undo creation by deleting
+      deleteAffectations.mutate({ 
+        projectId: lastAction.data.project_id,
+        encadrantId: lastAction.data.encadrant_id,
+        salarieId: lastAction.data.salarie_id,
+        date: dateString 
+      });
+    } else if (lastAction.type === 'delete') {
+      // Undo deletion by recreating
+      createAffectation.mutate(lastAction.data);
+    }
+    
+    // Remove from history
+    setActionHistory(prev => prev.slice(0, -1));
+    
+    toast({
+      title: "Action annulée",
+      description: "La dernière action a été annulée"
+    });
   };
 
   const getClientColor = (clientId: string) => {
@@ -342,7 +410,7 @@ export function AffectationQuotidienne() {
                 <div className="text-sm text-muted-foreground">Encadrants affectés</div>
                 <div className="w-full bg-border rounded-full h-2 mt-2">
                   <div 
-                    className="bg-accent h-2 rounded-full transition-smooth"
+                    className="bg-primary h-2 rounded-full transition-smooth"
                     style={{ width: totalBesoinsEncadrants > 0 ? `${(totalEncadrantsAffectes / totalBesoinsEncadrants) * 100}%` : '0%' }}
                   />
                 </div>
@@ -355,7 +423,7 @@ export function AffectationQuotidienne() {
                 <div className="text-sm text-muted-foreground">Salariés affectés</div>
                 <div className="w-full bg-border rounded-full h-2 mt-2">
                   <div 
-                    className="bg-available h-2 rounded-full transition-smooth"
+                    className="bg-accent h-2 rounded-full transition-smooth"
                     style={{ width: totalBesoinsSalaries > 0 ? `${(totalSalariesAffectes / totalBesoinsSalaries) * 100}%` : '0%' }}
                   />
                 </div>
@@ -366,7 +434,7 @@ export function AffectationQuotidienne() {
                   {(chantiersAvecEncadrant === totalChantiers && totalSalariesAffectes >= totalBesoinsSalaries) ? (
                     <CheckCircle className="w-6 h-6 text-available" />
                   ) : (
-                    <AlertTriangle className="w-6 h-6 text-suivi" />
+                    <AlertTriangle className="w-6 h-6 text-destructive" />
                   )}
                 </div>
                 <div className="text-sm text-muted-foreground mt-2">
@@ -379,27 +447,48 @@ export function AffectationQuotidienne() {
           </CardContent>
         </Card>
 
-        {/* Drag & Drop Board - Ajout fonction annuler */}
+        {/* Drag & Drop Board - Ajout fonction annuler et undo */}
         <div className="mb-4 p-4 bg-muted/50 rounded-lg">
           <div className="text-sm text-muted-foreground flex items-center justify-between">
-            💡 <strong>Instructions :</strong> Glissez les encadrants vers les chantiers pour les affecter. 
-            Glissez ensuite les salariés vers les encadrants déjà affectés pour former les équipes.
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                // Supprimer toutes les affectations du jour
-                deleteAffectations.mutate({ date: dateString });
-                toast({
-                  title: "Affectations annulées",
-                  description: "Toutes les affectations du jour ont été supprimées"
-                });
-              }}
-            >
-              Annuler toutes les affectations
-            </Button>
+            <div className="flex items-center space-x-2">
+              💡 <strong>Instructions :</strong> Glissez les encadrants vers les chantiers pour les affecter. 
+              Glissez ensuite les salariés vers les encadrants déjà affectés pour former les équipes.
+              Glissez vers la zone de suppression pour retirer une affectation.
+            </div>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleUndo}
+                disabled={actionHistory.length === 0}
+              >
+                Annuler dernière action ({actionHistory.length})
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  // Supprimer toutes les affectations du jour
+                  deleteAffectations.mutate({ date: dateString });
+                  setActionHistory([]);
+                  toast({
+                    title: "Affectations annulées",
+                    description: "Toutes les affectations du jour ont été supprimées"
+                  });
+                }}
+              >
+                Annuler toutes les affectations
+              </Button>
+            </div>
           </div>
         </div>
+        
+        {/* Zone de suppression */}
+        <DroppableArea id="remove-zone" className="mb-4 p-4 border-2 border-dashed border-destructive bg-destructive/5 rounded-lg text-center">
+          <div className="text-destructive font-medium">
+            🗑️ Zone de suppression - Glissez ici pour retirer une affectation
+          </div>
+        </DroppableArea>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Column 1: Chantiers du jour */}
           <Card className="shadow-card">

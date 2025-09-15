@@ -91,8 +91,8 @@ export function MonthCalendar({ selectedDate, onDateSelect, events = [] }: Month
                   {dayEvents.slice(0, 2).map((event, index) => (
                     <div
                       key={index}
-                      className="text-xs p-1 rounded bg-primary/20 text-primary truncate"
-                      style={{ backgroundColor: event.color ? `${event.color}20` : undefined }}
+                      className="text-xs p-1 rounded text-white truncate"
+                      style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
                       title={event.title}
                     >
                       {event.title}

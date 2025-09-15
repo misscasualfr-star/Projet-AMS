@@ -265,41 +265,29 @@ export function PlanningHebdomadaire() {
                           <div
                             key={`${chantier.id}-${day.date}`}
                             className={cn(
-                              "p-2 border rounded-lg cursor-pointer transition-smooth hover:shadow-elevated min-h-[80px] animate-fade-in",
+                              "p-2 border-2 rounded-lg cursor-pointer transition-smooth hover:shadow-elevated min-h-[80px] animate-fade-in",
                               day.isWeekend ? "bg-muted/20" : "bg-background hover:bg-muted/10",
                               selectedCell?.chantierId === chantier.id && selectedCell?.date === day.date 
                                 ? "ring-2 ring-primary animate-scale-in" : "",
-                              stats.isComplete ? "border-available hover:border-available/80" : "bg-incomplete border-destructive"
+                              stats.isComplete ? "bg-available/10" : "bg-destructive/10"
                             )}
+                            style={{ 
+                              borderColor: getClientColor(chantier.client_id || ''),
+                              backgroundColor: stats.isComplete ? undefined : 'hsl(var(--destructive) / 0.1)'
+                            }}
                             onClick={() => handleCellClick(chantier.id, day.date)}
                           >
-                            {encadrant && (
-                              <div className="mb-2 animate-fade-in">
-                                <div className="text-xs font-medium text-primary">
-                                  Encadrant: {encadrant.nom}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {salariesAffectes.length > 0 && (
-                              <div className="space-y-1 animate-fade-in">
-                                <div className="text-xs font-medium text-accent">
-                                  Salariés: {salariesAffectes.map(s => s?.nom).join(', ')}
-                                </div>
-                              </div>
-                            )}
-
                             {/* Stats */}
-                            <div className="flex justify-between items-center mt-2 pt-1 border-t text-xs">
+                            <div className="flex justify-between items-center text-xs">
                               <div className="flex items-center space-x-1">
                                 <UserCheck className="w-3 h-3" />
-                                <span className={stats.encadrantsAffectes >= stats.besoinsEncadrants ? "text-available" : "text-suivi"}>
+                                <span className={stats.encadrantsAffectes >= stats.besoinsEncadrants ? "text-available" : "text-destructive"}>
                                   {stats.encadrantsAffectes}/{stats.besoinsEncadrants}
                                 </span>
                               </div>
                               <div className="flex items-center space-x-1">
                                 <Users className="w-3 h-3" />
-                                <span className={stats.salariesAffectes >= stats.besoinsSalaries ? "text-available" : "text-suivi"}>
+                                <span className={stats.salariesAffectes >= stats.besoinsSalaries ? "text-available" : "text-destructive"}>
                                   {stats.salariesAffectes}/{stats.besoinsSalaries}
                                 </span>
                               </div>
@@ -342,11 +330,11 @@ export function PlanningHebdomadaire() {
               <h4 className="font-semibold mb-3">Légende</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 border border-available rounded" />
+                  <div className="w-4 h-4 bg-available/10 border-2 border-available rounded" />
                   <span>Affectation complète</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-incomplete rounded" />
+                  <div className="w-4 h-4 bg-destructive/10 border-2 border-destructive rounded" />
                   <span>Affectation incomplète</span>
                 </div>
                 <div className="flex items-center space-x-2">

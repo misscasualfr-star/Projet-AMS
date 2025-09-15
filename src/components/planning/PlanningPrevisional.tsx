@@ -303,16 +303,16 @@ export function PlanningPrevisional() {
                       );
                     })}
                   
-                  {!day.isWeekend && (
-                    <Button
-                      variant="ghost"
-                      className="w-full h-12 border-2 border-dashed border-border hover:border-primary text-muted-foreground hover:text-primary"
-                      onClick={handleNewChantier}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Ajouter chantier
-                    </Button>
-                  )}
+                   {!day.isWeekend && (
+                     <Button
+                       variant="ghost"
+                       className="w-full h-12 border-2 border-dashed border-border hover:border-accent text-muted-foreground hover:text-accent"
+                       onClick={handleNewChantier}
+                     >
+                       <Plus className="w-4 h-4 mr-2" />
+                       Ajouter chantier
+                     </Button>
+                   )}
                 </div>
               </div>
             ))}
@@ -325,11 +325,14 @@ export function PlanningPrevisional() {
           <MonthCalendar
             selectedDate={currentWeek}
             onDateSelect={(date) => setCurrentWeek(date)}
-            events={filteredChantiers.map(chantier => ({
-              date: new Date(chantier.start_date),
-              title: chantier.name,
-              color: getClientColor(chantier.client_id || '')
-            }))}
+            events={chantiers.map(chantier => {
+              const client = clients.find(c => c.id === chantier.client_id);
+              return {
+                date: new Date(chantier.start_date),
+                title: `${client?.nom || 'Client'} - ${chantier.name}`,
+                color: getClientColor(chantier.client_id || '')
+              };
+            })}
           />
         </div>
       </div>

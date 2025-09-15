@@ -241,7 +241,7 @@ export function Encadrants() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={encadrant.actif ? "bg-available text-white" : "bg-absent text-white"}>
+                      <Badge className={encadrant.actif ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}>
                         {encadrant.actif ? "Actif" : "Inactif"}
                       </Badge>
                     </TableCell>
