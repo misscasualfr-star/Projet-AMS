@@ -245,7 +245,10 @@ export function PlanningPrevisional() {
                         <Card 
                           key={chantier.id} 
                           className="group cursor-pointer transition-smooth hover:shadow-elevated border-l-4 relative"
-                          style={{ borderLeftColor: getClientColor(chantier.client_id || '') }}
+                          style={{ 
+                            borderLeftColor: getClientColor(chantier.client_id || ''),
+                            backgroundColor: `${getClientColor(chantier.client_id || '')}15`
+                          }}
                         >
                           <CardContent className="p-3 space-y-2">
                             <div className="flex items-center justify-between">
@@ -329,6 +332,7 @@ export function PlanningPrevisional() {
               const client = clients.find(c => c.id === chantier.client_id);
               return {
                 date: new Date(chantier.start_date),
+                endDate: chantier.end_date ? new Date(chantier.end_date) : undefined,
                 title: `${client?.nom || 'Client'} - ${chantier.name}`,
                 color: getClientColor(chantier.client_id || '')
               };

@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, UserCheck, Plus, Edit, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users, UserCheck, Plus, Edit, Trash2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useChantiers } from "@/hooks/useChantiers";
@@ -20,6 +21,7 @@ export function PlanningHebdomadaire() {
   const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedCell, setSelectedCell] = useState<{ chantierId: string; date: string } | null>(null);
+  const [showChantierDetails, setShowChantierDetails] = useState<{ chantier: any; date: string; stats: any } | null>(null);
   
   const { toast } = useToast();
   
@@ -125,6 +127,15 @@ export function PlanningHebdomadaire() {
 
   const handleCellClick = (chantierId: string, date: string) => {
     setSelectedCell({ chantierId, date });
+    
+    // If chantier is complete, show details
+    const stats = getCellStats(chantierId, date);
+    if (stats.isComplete) {
+      const chantier = chantiersActifs.find(c => c.id === chantierId);
+      if (chantier) {
+        setShowChantierDetails({ chantier, date, stats });
+      }
+    }
   };
 
   const getCellStats = (chantierId: string, date: string) => {
@@ -269,11 +280,11 @@ export function PlanningHebdomadaire() {
                               day.isWeekend ? "bg-muted/20" : "bg-background hover:bg-muted/10",
                               selectedCell?.chantierId === chantier.id && selectedCell?.date === day.date 
                                 ? "ring-2 ring-primary animate-scale-in" : "",
-                              stats.isComplete ? "bg-available/10" : "bg-destructive/10"
+                              stats.isComplete ? "bg-available/10 hover:bg-available/20" : "bg-destructive/10"
                             )}
                             style={{ 
                               borderColor: getClientColor(chantier.client_id || ''),
-                              backgroundColor: stats.isComplete ? undefined : 'hsl(var(--destructive) / 0.1)'
+                              backgroundColor: stats.isComplete ? 'hsl(var(--available) / 0.1)' : 'hsl(var(--destructive) / 0.1)'
                             }}
                             onClick={() => handleCellClick(chantier.id, day.date)}
                           >
@@ -291,6 +302,11 @@ export function PlanningHebdomadaire() {
                                   {stats.salariesAffectes}/{stats.besoinsSalaries}
                                 </span>
                               </div>
+                              {stats.isComplete && (
+                                <div className="flex items-center space-x-1 text-available">
+                                  <Info className="w-3 h-3" />
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -361,6 +377,66 @@ export function PlanningHebdomadaire() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Chantier Details Dialog */}
+      <Dialog open={!!showChantierDetails} onOpenChange={() => setShowChantierDetails(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Détails du chantier validé</DialogTitle>
+          </DialogHeader>
+          {showChantierDetails && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-semibold mb-2">Informations du chantier</h4>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">Client:</span> {getClientName(showChantierDetails.chantier.client_id)}</p>
+                    <p><span className="font-medium">Chantier:</span> {showChantierDetails.chantier.name}</p>
+                    <p><span className="font-medium">Adresse:</span> {showChantierDetails.chantier.address}</p>
+                    <p><span className="font-medium">Date:</span> {new Date(showChantierDetails.date).toLocaleDateString('fr-FR')}</p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Équipe affectée</h4>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm font-medium text-primary">Encadrant:</p>
+                      {(() => {
+                        const encadrant = getEncadrantForAffectation(showChantierDetails.chantier.id, showChantierDetails.date);
+                        return encadrant ? (
+                          <p className="text-sm ml-2">{encadrant.nom}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground ml-2">Aucun</p>
+                        );
+                      })()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-accent">Salariés:</p>
+                      <div className="ml-2">
+                        {(() => {
+                          const salaries = getSalariesForAffectation(showChantierDetails.chantier.id, showChantierDetails.date);
+                          return salaries.length > 0 ? (
+                            salaries.map((salarie, index) => (
+                              <p key={index} className="text-sm">{salarie.nom}</p>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Aucun</p>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => setShowChantierDetails(null)}>
+                  Fermer
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

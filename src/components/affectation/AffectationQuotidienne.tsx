@@ -179,8 +179,8 @@ export function AffectationQuotidienne() {
 
     console.log('Drag end:', { draggedId, targetId });
 
-    // Check if dragging back to remove assignment
-    if (targetId === 'remove-zone') {
+    // Check if dragging back to encadrants or salaries column (remove assignment)
+    if (targetId === 'encadrants-disponibles' || targetId === 'salaries-disponibles') {
       // Find and remove the assignment
       const affectationToRemove = affectations.find(aff => 
         aff.encadrant_id === draggedId || aff.salarie_id === draggedId
@@ -355,6 +355,31 @@ export function AffectationQuotidienne() {
     return encadrants.find(e => e.id === chantierAffectation.encadrant);
   };
 
+  const handlePersonClick = (personId: string, personType: 'encadrant' | 'salarie') => {
+    // Find and remove the assignment
+    const affectationToRemove = affectations.find(aff => 
+      (personType === 'encadrant' && aff.encadrant_id === personId) ||
+      (personType === 'salarie' && aff.salarie_id === personId)
+    );
+    
+    if (affectationToRemove) {
+      // Store action for undo
+      setActionHistory(prev => [...prev, { type: 'delete', data: affectationToRemove }]);
+      
+      deleteAffectations.mutate({ 
+        projectId: affectationToRemove.project_id,
+        encadrantId: affectationToRemove.encadrant_id,
+        salarieId: affectationToRemove.salarie_id,
+        date: dateString 
+      });
+      
+      toast({
+        title: "Affectation supprimée",
+        description: "L'affectation a été retirée du chantier"
+      });
+    }
+  };
+
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <div className="space-y-6 p-6">
@@ -452,8 +477,8 @@ export function AffectationQuotidienne() {
           <div className="text-sm text-muted-foreground flex items-center justify-between">
             <div className="flex items-center space-x-2">
               💡 <strong>Instructions :</strong> Glissez les encadrants vers les chantiers pour les affecter. 
-              Glissez ensuite les salariés vers les encadrants déjà affectés pour former les équipes.
-              Glissez vers la zone de suppression pour retirer une affectation.
+              Glissez ensuite les salariés vers les encadrants déjà affectés pour former les équipes. 
+              Cliquez sur une personne affectée pour la retirer ou glissez-la vers sa colonne d'origine.
             </div>
             <div className="flex space-x-2">
               <Button 
@@ -483,12 +508,6 @@ export function AffectationQuotidienne() {
           </div>
         </div>
         
-        {/* Zone de suppression */}
-        <DroppableArea id="remove-zone" className="mb-4 p-4 border-2 border-dashed border-destructive bg-destructive/5 rounded-lg text-center">
-          <div className="text-destructive font-medium">
-            🗑️ Zone de suppression - Glissez ici pour retirer une affectation
-          </div>
-        </DroppableArea>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Column 1: Chantiers du jour */}
           <Card className="shadow-card">
@@ -540,16 +559,20 @@ export function AffectationQuotidienne() {
                         {/* Encadrant affecté */}
                         {encadrant && (
                           <div className="pt-2 border-t border-border">
-                            <DroppableArea id={encadrant.id} className="w-full">
-                              <div className="flex items-center space-x-2 mb-2 p-2 rounded transition-smooth hover:bg-muted/50">
-                                <Avatar className="w-6 h-6" style={{ backgroundColor: encadrant.couleur }}>
-                                  <AvatarFallback className="text-white font-semibold text-xs">
-                                    {encadrant.initiales}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span className="text-sm font-medium">{encadrant.nom}</span>
-                              </div>
-                            </DroppableArea>
+                            <div 
+                              className="flex items-center space-x-2 mb-2 p-2 rounded transition-smooth hover:bg-muted/50 cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePersonClick(encadrant.id, 'encadrant');
+                              }}
+                            >
+                              <Avatar className="w-6 h-6" style={{ backgroundColor: encadrant.couleur }}>
+                                <AvatarFallback className="text-white font-semibold text-xs">
+                                  {encadrant.initiales}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium">{encadrant.nom}</span>
+                            </div>
                             
                             {/* Salariés affectés */}
                             {salariesAffectes.length > 0 && (
@@ -560,7 +583,11 @@ export function AffectationQuotidienne() {
                                     <Badge 
                                       key={salarie?.id} 
                                       variant="secondary" 
-                                      className="text-xs flex items-center space-x-1"
+                                      className="text-xs flex items-center space-x-1 cursor-pointer hover:bg-secondary/80 transition-colors"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePersonClick(salarie?.id || '', 'salarie');
+                                      }}
                                     >
                                       <span>{salarie?.nom.split(' ')[0]}</span>
                                       {salarie?.conducteur && <span>🚗</span>}

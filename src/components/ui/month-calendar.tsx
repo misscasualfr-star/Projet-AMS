@@ -11,6 +11,7 @@ interface MonthCalendarProps {
   onDateSelect?: (date: Date) => void;
   events?: Array<{
     date: Date;
+    endDate?: Date;
     title: string;
     color?: string;
   }>;
@@ -39,7 +40,13 @@ export function MonthCalendar({ selectedDate, onDateSelect, events = [] }: Month
   };
 
   const getEventsForDate = (date: Date) => {
-    return events.filter(event => isSameDay(event.date, date));
+    return events.filter(event => {
+      // Check if event spans multiple days and include all days in range
+      if (event.endDate) {
+        return date >= event.date && date <= event.endDate;
+      }
+      return isSameDay(event.date, date);
+    });
   };
 
   return (
