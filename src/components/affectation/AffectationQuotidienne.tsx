@@ -599,13 +599,39 @@ export function AffectationQuotidienne() {
                           </div>
                         )}
 
-                        {/* Besoins */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-1 text-xs">
-                            <span className="font-medium">Enc: {encadrant ? 1 : 0}/{chantier.besoins_encadrants || 1}</span>
+                        {/* Besoins ou noms des personnes si complété */}
+                        <div className="space-y-2">
+                          {/* Encadrants */}
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Encadrants:</span>
+                            {encadrant && (chantier.besoins_encadrants || 1) === 1 ? (
+                              <Badge variant="outline" className="text-xs">
+                                {encadrant.nom}
+                              </Badge>
+                            ) : (
+                              <span className="font-medium">
+                                {encadrant ? 1 : 0}/{chantier.besoins_encadrants || 1}
+                              </span>
+                            )}
                           </div>
-                          <div className="flex items-center space-x-1 text-xs">
-                            <span className="font-medium">Sal: {salariesAffectes.length}/{chantier.besoins_salaries || 0}</span>
+                          
+                          {/* Salariés */}
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-muted-foreground">Salariés:</span>
+                            {salariesAffectes.length > 0 && salariesAffectes.length === (chantier.besoins_salaries || 0) ? (
+                              <div className="flex flex-wrap gap-1">
+                                {salariesAffectes.map(salarie => (
+                                  <Badge key={salarie?.id} variant="outline" className="text-xs">
+                                    {salarie?.nom.split(' ')[0]}
+                                    {salarie?.conducteur && ' 🚗'}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="font-medium">
+                                {salariesAffectes.length}/{chantier.besoins_salaries || 0}
+                              </span>
+                            )}
                           </div>
                         </div>
 
