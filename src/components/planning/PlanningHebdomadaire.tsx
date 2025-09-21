@@ -288,23 +288,44 @@ export function PlanningHebdomadaire() {
                             }}
                             onClick={() => handleCellClick(chantier.id, day.date)}
                           >
-                            {/* Stats */}
-                            <div className="flex justify-between items-center text-xs">
-                              <div className="flex items-center space-x-1">
-                                <UserCheck className="w-3 h-3" />
-                                <span className={stats.encadrantsAffectes >= stats.besoinsEncadrants ? "text-available" : "text-destructive"}>
-                                  {stats.encadrantsAffectes}/{stats.besoinsEncadrants}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Users className="w-3 h-3" />
-                                <span className={stats.salariesAffectes >= stats.besoinsSalaries ? "text-available" : "text-destructive"}>
-                                  {stats.salariesAffectes}/{stats.besoinsSalaries}
-                                </span>
-                              </div>
-                              {stats.isComplete && (
-                                <div className="flex items-center space-x-1 text-available">
-                                  <Info className="w-3 h-3" />
+                            <div className="space-y-1">
+                              {/* Afficher les noms si des personnes sont affectées */}
+                              {encadrant && (
+                                <div className="text-xs font-medium text-primary bg-primary/10 px-1 py-0.5 rounded">
+                                  👤 {encadrant.nom.split(' ')[0]}
+                                </div>
+                              )}
+                              
+                              {salariesAffectes.length > 0 && (
+                                <div className="space-y-0.5">
+                                  {salariesAffectes.map(salarie => (
+                                    <div key={salarie?.id} className="text-xs text-accent bg-accent/10 px-1 py-0.5 rounded">
+                                      👷 {salarie?.nom.split(' ')[0]}
+                                      {salarie?.conducteur && ' 🚗'}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {/* Afficher les ratios seulement s'il manque des personnes */}
+                              {(!encadrant || salariesAffectes.length < stats.besoinsSalaries) && (
+                                <div className="flex justify-between items-center text-xs mt-1">
+                                  {!encadrant && (
+                                    <div className="flex items-center space-x-1">
+                                      <UserCheck className="w-3 h-3" />
+                                      <span className="text-destructive">
+                                        {stats.encadrantsAffectes}/{stats.besoinsEncadrants}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {salariesAffectes.length < stats.besoinsSalaries && (
+                                    <div className="flex items-center space-x-1">
+                                      <Users className="w-3 h-3" />
+                                      <span className="text-destructive">
+                                        {stats.salariesAffectes}/{stats.besoinsSalaries}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
